@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 <title>Ayush</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -247,17 +247,10 @@ const CONFIG = {
   <span class="logo">Ayush</span>
   <div class="header-icons">
     <button class="icon-btn">
-      <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-    </button>
-    <button class="icon-btn">
       <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     </button>
   </div>
 </header>
-
-<div class="profile-section">
-  <div class="username" id="profileUser"></div>
-</div>
 
 <div class="tabs">
   <button class="tab active" data-tab="posts">
@@ -300,7 +293,6 @@ const CONFIG = {
 <script>
 (function () {
   const initials = CONFIG.username.slice(0, 2).toUpperCase();
-  document.getElementById('profileUser').textContent = CONFIG.username;
 
   // ── Tab switching ─────────────────────────────────────────
   document.querySelectorAll('.tab').forEach(tab => {
@@ -419,12 +411,6 @@ const CONFIG = {
     feed.innerHTML = '';
     activeLBVideos = [];
 
-    const closeBar = document.createElement('div');
-    closeBar.style.cssText = 'position:sticky;top:0;z-index:10;display:flex;justify-content:flex-end;padding:10px 14px;background:rgba(0,0,0,0.6);width:100%;';
-    closeBar.innerHTML = `<button style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1;padding:4px;">✕</button>`;
-    closeBar.querySelector('button').addEventListener('click', closeLB);
-    feed.appendChild(closeBar);
-
     list.forEach((item, i) => {
       const post = document.createElement('div');
       post.className = 'lb-post';
@@ -432,12 +418,6 @@ const CONFIG = {
 
       const likeKey = tabKey + i;
       const isLiked = liked.has(likeKey);
-
-      const topHTML = `
-        <div class="lb-post-top">
-          <div class="lb-mini-ring"><div class="lb-mini-bg"><span>${initials}</span></div></div>
-          <span class="lb-post-uname">${CONFIG.username}</span>
-        </div>`;
 
       const actionsHTML = `
         <div class="lb-post-actions">
@@ -447,14 +427,11 @@ const CONFIG = {
           <button class="icon-btn">
             <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           </button>
-          <button class="icon-btn">
-            <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          </button>
         </div>
         <div class="lb-post-num">${i + 1} / ${list.length}</div>`;
 
       if (item.isVideo) {
-        post.innerHTML = topHTML + actionsHTML;
+        post.innerHTML = actionsHTML;
         // Insert video element
         const vid = document.createElement('video');
         vid.className = 'lb-post-video';
@@ -463,11 +440,11 @@ const CONFIG = {
         vid.playsInline = true;
         vid.muted = false;
         vid.preload = 'metadata';
-        // Insert after top bar
-        post.querySelector('.lb-post-top').after(vid);
+        // Insert before actions
+        post.querySelector('.lb-post-actions').before(vid);
         activeLBVideos.push(vid);
       } else {
-        post.innerHTML = topHTML +
+        post.innerHTML =
           `<img class="lb-post-img" src="${item.s}" alt="photo ${item.n}" loading="lazy">` +
           actionsHTML;
       }
@@ -502,6 +479,27 @@ const CONFIG = {
   document.getElementById('lightbox').addEventListener('click', e => {
     if (e.target === document.getElementById('lightbox')) closeLB();
   });
+
+  // Swipe right to close lightbox
+  (function() {
+    let startX = 0, startY = 0;
+    const lb = document.getElementById('lightbox');
+    lb.addEventListener('touchstart', e => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }, { passive: true });
+    lb.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = Math.abs(e.changedTouches[0].clientY - startY);
+      if (dx > 80 && dy < 60) closeLB();
+    }, { passive: true });
+  })();
+
+  // Prevent pinch-to-zoom globally
+  document.addEventListener('touchmove', e => {
+    if (e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+  document.addEventListener('gesturestart', e => e.preventDefault());
 
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && document.getElementById('lightbox').classList.contains('open')) closeLB();
