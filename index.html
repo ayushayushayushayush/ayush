@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>My Gallery</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #fff;
+    --bg2: #fafafa;
+    --border: #dbdbdb;
+    --text: #262626;
+    --text2: #8e8e8e;
+    --accent: #0095f6;
+    --header-h: 60px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000;
+      --bg2: #121212;
+      --border: #262626;
+      --text: #f5f5f5;
+      --text2: #a8a8a8;
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg2);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    height: var(--header-h);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+  }
+
+  .logo {
+    font-family: 'Georgia', serif;
+    font-size: 22px;
+    font-style: italic;
+    font-weight: 400;
+    color: var(--text);
+    letter-spacing: -0.5px;
+    text-decoration: none;
+  }
+
+  .header-icons {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+
+  .icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text);
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .icon-btn svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  .profile-section {
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 16px 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 28px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .avatar-wrap {
+    flex-shrink: 0;
+  }
+
+  .avatar {
+    width: 86px;
+    height: 86px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+    padding: 2.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .avatar-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: var(--bg);
+    padding: 2.5px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .avatar-inner img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .avatar-initials {
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--text2);
+  }
+
+  .profile-info { flex: 1; }
+
+  .username {
+    font-size: 20px;
+    font-weight: 300;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+
+  .stats {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 14px;
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-num {
+    font-size: 16px;
+    font-weight: 600;
+    display: block;
+    color: var(--text);
+  }
+
+  .stat-label {
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .bio {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text);
+  }
+
+  .bio strong { font-weight: 600; display: block; }
+
+  .tabs {
+    background: var(--bg);
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    max-width: 600px;
+    margin: 0 auto;
+    position: sticky;
+    top: var(--header-h);
+    z-index: 90;
+  }
+
+  .tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px 0;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text2);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    user-select: none;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+
+  .tab.active {
+    color: var(--text);
+    border-bottom-color: var(--text);
+  }
+
+  .tab svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .grid-item {
+    aspect-ratio: 1;
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+    background: var(--border);
+  }
+
+  .grid-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.2s ease;
+  }
+
+  .grid-item:hover img { transform: scale(1.04); }
+
+  .grid-item .hover-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .hover-overlay span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .hover-overlay svg { width: 20px; height: 20px; fill: #fff; stroke: none; }
+
+  .grid-item:hover .hover-overlay { opacity: 1; }
+
+  .lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: rgba(0,0,0,0.85);
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .lightbox.open { display: flex; }
+
+  .lb-card {
+    background: var(--bg);
+    width: min(480px, 100vw);
+    max-height: 100dvh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    border-radius: 0;
+  }
+
+  @media (min-width: 600px) {
+    .lb-card {
+      border-radius: 12px;
+      max-height: 90dvh;
+    }
+  }
+
+  .lb-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .lb-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+    padding: 1.5px;
+    flex-shrink: 0;
+  }
+
+  .lb-avatar-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: var(--bg);
+    padding: 1.5px;
+    overflow: hidden;
+  }
+
+  .lb-avatar-inner img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+
+  .lb-username { font-size: 13px; font-weight: 600; flex: 1; }
+  
+  .lb-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text);
+    padding: 4px;
+    line-height: 1;
+    font-size: 22px;
+  }
+
+  .lb-img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: var(--border); }
+
+  .lb-actions {
+    display: flex;
+    gap: 14px;
+    padding: 10px 14px 4px;
+    align-items: center;
+  }
+
+  .lb-actions .icon-btn svg { width: 26px; height: 26px; }
+
+  .lb-actions .icon-btn.heart.liked svg { fill: #ed4956; stroke: #ed4956; }
+
+  .lb-filename {
+    padding: 4px 14px 14px;
+    font-size: 12px;
+    color: var(--text2);
+  }
+
+  .lb-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.9);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  .lb-nav.prev { left: 8px; }
+  .lb-nav.next { right: 8px; }
+  .lb-nav svg { width: 18px; height: 18px; stroke: #262626; fill: none; stroke-width: 2.5; stroke-linecap: round; }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--text2);
+    grid-column: 1/-1;
+  }
+
+  .empty-state svg { width: 52px; height: 52px; stroke: var(--text2); fill: none; stroke-width: 1; margin-bottom: 16px; }
+  .empty-state h3 { font-size: 20px; font-weight: 300; margin-bottom: 6px; color: var(--text); }
+  .empty-state p { font-size: 14px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<!-- =============================================
+  CONFIG — edit this section to customize
+  ============================================= -->
+<script>
+const CONFIG = {
+  username: "your_username",
+  bio: "Your bio goes here ✨",
+  bioName: "Your Name",
+  avatarFile: "",       // e.g. "avatar.jpg" — leave empty for initials
+  profilePic: "",       // same as avatarFile
+
+  // List your image filenames here
+  // Supported formats: jpg, jpeg, png, gif, webp, avif
+  // Leave empty [] to auto-scan common names, or list them:
+  images: [
+    // "photo1.jpg",
+    // "photo2.jpeg",
+    // "IMG_0045.jpg",
+  ],
+
+  // Auto-scan: if images[] is empty, the page tries to find
+  // images by loading them — add your filenames above for best results
+};
+</script>
+<!-- ============================================= -->
+
+<header>
+  <a class="logo" href="#">Instagram</a>
+  <div class="header-icons">
+    <button class="icon-btn" title="New post">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    </button>
+    <button class="icon-btn" title="Heart">
+      <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="profile-section">
+  <div class="avatar-wrap">
+    <div class="avatar" id="avatar">
+      <div class="avatar-inner" id="avatarInner">
+        <span class="avatar-initials" id="avatarInitials"></span>
+      </div>
+    </div>
+  </div>
+  <div class="profile-info">
+    <div class="username" id="profileUsername"></div>
+    <div class="stats">
+      <div class="stat"><span class="stat-num" id="postCount">0</span><span class="stat-label">posts</span></div>
+      <div class="stat"><span class="stat-num">—</span><span class="stat-label">followers</span></div>
+      <div class="stat"><span class="stat-num">—</span><span class="stat-label">following</span></div>
+    </div>
+    <div class="bio"><strong id="bioName"></strong><span id="bioText"></span></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Posts
+  </button>
+  <button class="tab">
+    <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="3"/><path d="M9.5 14.5l5-5"/><path d="M14.5 14.5V9.5H9.5"/></svg>
+    Reels
+  </button>
+  <button class="tab">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
+    Tagged
+  </button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="lightbox" id="lightbox">
+  <button class="lb-nav prev" id="lbPrev" title="Previous">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <div class="lb-card" id="lbCard">
+    <div class="lb-header">
+      <div class="lb-avatar" id="lbAvatar">
+        <div class="lb-avatar-inner" id="lbAvatarInner">
+          <img id="lbAvatarImg" src="" alt="" style="display:none;">
+          <span id="lbAvatarInitials" style="font-size:12px;font-weight:300;color:var(--text2);display:flex;align-items:center;justify-content:center;height:100%;"></span>
+        </div>
+      </div>
+      <span class="lb-username" id="lbUsername"></span>
+      <button class="lb-close" id="lbClose">&#x2715;</button>
+    </div>
+    <img class="lb-img" id="lbImg" src="" alt="">
+    <div class="lb-actions">
+      <button class="icon-btn heart" id="lbHeart" title="Like">
+        <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" stroke-width="1.8"/></svg>
+      </button>
+      <button class="icon-btn" title="Comment">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </button>
+      <button class="icon-btn" title="Share">
+        <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+    <div class="lb-filename" id="lbFilename"></div>
+  </div>
+  <button class="lb-nav next" id="lbNext" title="Next">
+    <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+</div>
+
+<script>
+(function(){
+  // Apply config
+  document.getElementById('profileUsername').textContent = CONFIG.username;
+  document.getElementById('bioName').textContent = CONFIG.bioName;
+  document.getElementById('bioText').textContent = CONFIG.bio;
+
+  const initials = CONFIG.username.slice(0, 2).toUpperCase();
+  document.getElementById('avatarInitials').textContent = initials;
+  document.getElementById('lbAvatarInitials').textContent = initials;
+  document.getElementById('lbUsername').textContent = CONFIG.username;
+
+  if (CONFIG.avatarFile) {
+    const avatarInner = document.getElementById('avatarInner');
+    avatarInner.innerHTML = `<img src="${CONFIG.avatarFile}" alt="avatar" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+    const lbAvatarImg = document.getElementById('lbAvatarImg');
+    lbAvatarImg.src = CONFIG.avatarFile;
+    lbAvatarImg.style.display = 'block';
+    document.getElementById('lbAvatarInitials').style.display = 'none';
+  }
+
+  // Image discovery
+  const EXTS = ['jpg','jpeg','png','gif','webp','avif','JPG','JPEG','PNG','WEBP'];
+  let images = CONFIG.images.filter(Boolean);
+  const grid = document.getElementById('grid');
+  let currentIndex = 0;
+  const liked = new Set();
+
+  function renderGrid(files) {
+    document.getElementById('postCount').textContent = files.length;
+    grid.innerHTML = '';
+    if (!files.length) {
+      grid.innerHTML = `<div class="empty-state">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <h3>No photos yet</h3>
+        <p>Add your image filenames to the CONFIG.images array in the HTML file.</p>
+      </div>`;
+      return;
+    }
+    files.forEach((file, i) => {
+      const item = document.createElement('div');
+      item.className = 'grid-item';
+      item.innerHTML = `
+        <img src="${file}" alt="${file}" loading="lazy" onerror="this.parentElement.style.display='none'">
+        <div class="hover-overlay">
+          <span><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>
+        </div>`;
+      item.addEventListener('click', () => openLightbox(i, files));
+      grid.appendChild(item);
+    });
+  }
+
+  function openLightbox(index, files) {
+    currentIndex = index;
+    const file = files[index];
+    document.getElementById('lbImg').src = file;
+    document.getElementById('lbFilename').textContent = file;
+    const heartBtn = document.getElementById('lbHeart');
+    heartBtn.classList.toggle('liked', liked.has(file));
+    document.getElementById('lightbox').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    lbPrev._files = files;
+    lbNext._files = files;
+  }
+
+  document.getElementById('lbClose').addEventListener('click', () => {
+    document.getElementById('lightbox').classList.remove('open');
+    document.body.style.overflow = '';
+  });
+
+  document.getElementById('lightbox').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('lightbox')) {
+      document.getElementById('lightbox').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+  });
+
+  const lbPrev = document.getElementById('lbPrev');
+  const lbNext = document.getElementById('lbNext');
+
+  lbPrev.addEventListener('click', () => {
+    const files = lbPrev._files;
+    if (!files) return;
+    currentIndex = (currentIndex - 1 + files.length) % files.length;
+    openLightbox(currentIndex, files);
+  });
+
+  lbNext.addEventListener('click', () => {
+    const files = lbNext._files;
+    if (!files) return;
+    currentIndex = (currentIndex + 1) % files.length;
+    openLightbox(currentIndex, files);
+  });
+
+  document.getElementById('lbHeart').addEventListener('click', function() {
+    const file = document.getElementById('lbImg').src.split('/').pop();
+    if (liked.has(file)) liked.delete(file); else liked.add(file);
+    this.classList.toggle('liked', liked.has(file));
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (!document.getElementById('lightbox').classList.contains('open')) return;
+    if (e.key === 'Escape') { document.getElementById('lightbox').classList.remove('open'); document.body.style.overflow = ''; }
+    if (e.key === 'ArrowLeft') lbPrev.click();
+    if (e.key === 'ArrowRight') lbNext.click();
+  });
+
+  // Touch swipe for lightbox
+  let touchStartX = 0;
+  document.getElementById('lbCard').addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, {passive:true});
+  document.getElementById('lbCard').addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 50) dx < 0 ? lbNext.click() : lbPrev.click();
+  }, {passive:true});
+
+  renderGrid(images);
+})();
+</script>
+</body>
+</html>
