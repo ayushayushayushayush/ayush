@@ -70,32 +70,8 @@
     background: var(--bg);
     border-bottom: 1px solid var(--border);
     padding: 24px 20px 20px;
-    display: flex;
-    align-items: flex-start;
-    gap: 24px;
     max-width: 600px;
     margin: 0 auto;
-  }
-
-  .avatar-ring {
-    width: 86px; height: 86px; border-radius: 50%; flex-shrink: 0;
-    background: conic-gradient(#f09433, #e6683c, #dc2743, #cc2366, #bc1888, #f09433);
-    padding: 2.5px;
-    display: flex; align-items: center; justify-content: center;
-  }
-
-  .avatar-bg {
-    width: 100%; height: 100%; border-radius: 50%;
-    background: var(--bg); padding: 2.5px;
-    display: flex; align-items: center; justify-content: center;
-    overflow: hidden;
-  }
-
-  .avatar-bg span {
-    font-size: 30px; font-weight: 300; color: var(--text2);
-    width: 100%; height: 100%; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    background: var(--bg2);
   }
 
   .profile-info { flex: 1; min-width: 0; }
@@ -106,9 +82,6 @@
   .stat { text-align: center; }
   .stat-num { font-size: 16px; font-weight: 600; display: block; color: var(--text); }
   .stat-label { font-size: 13px; color: var(--text); }
-
-  .bio { font-size: 14px; line-height: 1.5; color: var(--text); }
-  .bio strong { font-weight: 600; display: block; }
 
   /* Tabs */
   .tabs {
@@ -285,7 +258,7 @@ const CONFIG = {
   displayName: "Ayush",
   bio: "📸 My photos",
 
-  imgFolder: "POSTS",      // subfolder where images live
+  imgFolder: "ayush",      // subfolder where images live
   imgExt: "jpg",           // extension: jpg, jpeg, png, webp
   startAt: 1,              // first image number
   probe: true,             // true = auto-detect how many images exist
@@ -307,21 +280,10 @@ const CONFIG = {
 </header>
 
 <div class="profile-section">
-  <div class="avatar-ring">
-    <div class="avatar-bg">
-      <span id="avatarText">AY</span>
-    </div>
-  </div>
   <div class="profile-info">
     <div class="username" id="profileUser"></div>
     <div class="stats">
       <div class="stat"><span class="stat-num" id="postCount">—</span><span class="stat-label">posts</span></div>
-      <div class="stat"><span class="stat-num">—</span><span class="stat-label">followers</span></div>
-      <div class="stat"><span class="stat-num">—</span><span class="stat-label">following</span></div>
-    </div>
-    <div class="bio">
-      <strong id="displayName"></strong>
-      <span id="bioText"></span>
     </div>
   </div>
 </div>
@@ -383,11 +345,8 @@ const CONFIG = {
 (function () {
   // Apply config to DOM
   const initials = CONFIG.username.slice(0, 2).toUpperCase();
-  document.getElementById('avatarText').textContent = initials;
   document.getElementById('lbInitials').textContent = initials;
   document.getElementById('profileUser').textContent = CONFIG.username;
-  document.getElementById('displayName').textContent = CONFIG.displayName;
-  document.getElementById('bioText').textContent = CONFIG.bio;
   document.getElementById('lbUser').textContent = CONFIG.username;
 
   const grid = document.getElementById('grid');
