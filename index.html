@@ -136,6 +136,18 @@
     .grid-item:hover img { transform: scale(1.04); }
   }
 
+  /* Video grid items */
+  .grid-item video {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    pointer-events: none;
+  }
+  .grid-item .vid-play {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  .vid-play svg { width: 32px; height: 32px; filter: drop-shadow(0 1px 4px rgba(0,0,0,0.5)); }
+
   /* Empty */
   .empty-state {
     text-align: center; padding: 60px 24px;
@@ -206,6 +218,11 @@
   .lb-post-actions .icon-btn.liked svg { fill: #ed4956; stroke: #ed4956; }
 
   .lb-post-num { padding: 4px 14px 14px; font-size: 12px; color: var(--text2); }
+
+  .lb-post-video {
+    width: 100%; aspect-ratio: 1; object-fit: cover; display: block;
+    background: #000;
+  }
 </style>
 </head>
 <body>
@@ -218,9 +235,11 @@ const CONFIG = {
   username: "ayush",
   postsFolder: "POSTS",   // POSTS/1.jpg, POSTS/2.jpg …
   storyFolder: "STORY",   // STORY/1.jpg, STORY/2.jpg …
+  vidFolder:   "VID",     // VID/1.mp4, VID/2.mp4 …
   imgExt: "jpg",
+  vidExt: "mp4",
   startAt: 1,
-  probeMax: 500,          // raised for 200+ photos
+  probeMax: 500,
 };
 </script>
 
@@ -251,10 +270,10 @@ const CONFIG = {
     Day
     <span class="tab-count" id="count-day">0</span>
   </button>
-  <button class="tab" data-tab="tagged">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
-    Tagged
-    <span class="tab-count" id="count-tagged">—</span>
+  <button class="tab" data-tab="clips">
+    <svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+    Clips
+    <span class="tab-count" id="count-clips">0</span>
   </button>
 </div>
 
@@ -268,15 +287,9 @@ const CONFIG = {
   <div class="grid" id="grid-day"></div>
 </div>
 
-<!-- Tagged panel -->
-<div class="grid-wrap" id="wrap-tagged">
-  <div class="grid">
-    <div class="empty-state">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
-      <h3>No tagged photos</h3>
-      <p>Photos you're tagged in will appear here.</p>
-    </div>
-  </div>
+<!-- Clips panel -->
+<div class="grid-wrap" id="wrap-clips">
+  <div class="grid" id="grid-clips"></div>
 </div>
 
 <!-- Lightbox (scrollable feed) -->
@@ -299,91 +312,120 @@ const CONFIG = {
     });
   });
 
-  // ── Streaming probe: add each image to grid as soon as confirmed ──
-  function imgSrc(folder, n) { return `${folder}/${n}.${CONFIG.imgExt}`; }
-
-  // Add a placeholder cell first, probe it, reveal on success, remove on fail
-  function streamGrid(gridId, countId, folder, tabKey) {
+  // ── Streaming image grid ───────────────────────────────────
+  function streamGrid(gridId, countId, folder, ext, tabKey) {
     const grid = document.getElementById(gridId);
     const countEl = document.getElementById(countId);
-    const tabImgs = [];
-    let n = CONFIG.startAt;
-    let running = 0;
-    let done = false;
-    let misses = 0;
-    let finished = false;
+    const tabItems = [];
+    let n = CONFIG.startAt, misses = 0, finished = false;
 
     function updateCount() {
-      countEl.textContent = tabImgs.length;
+      countEl.textContent = tabItems.length;
       countEl.classList.add('visible');
     }
 
     function tryNext() {
       if (finished || n > CONFIG.probeMax) return;
       const num = n++;
-      const s = imgSrc(folder, num);
-      running++;
+      const s = `${folder}/${num}.${ext}`;
 
-      // Placeholder skeleton cell
       const cell = document.createElement('div');
       cell.className = 'grid-item skeleton';
-      const imgEl = document.createElement('img');
-      imgEl.alt = 'photo ' + num;
+
       const ov = document.createElement('div');
       ov.className = 'overlay';
       ov.innerHTML = `<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
-      cell.appendChild(imgEl);
-      cell.appendChild(ov);
+
       grid.appendChild(cell);
 
-      imgEl.onload = () => {
-        // Image exists — reveal it
-        const idx = tabImgs.length;
-        tabImgs.push({ s, n: num });
+      function onFound() {
+        const idx = tabItems.length;
+        tabItems.push({ s, n: num, isVideo: ext === CONFIG.vidExt });
         cell.classList.remove('skeleton');
         misses = 0;
-        cell.addEventListener('click', () => { openLB(tabKey, tabImgs, idx); });
+        cell.addEventListener('click', () => openLB(tabKey, tabItems, idx));
         updateCount();
-        running--;
         if (!finished) tryNext();
-      };
+      }
 
-      imgEl.onerror = () => {
-        // Image missing — remove skeleton cell
+      function onMiss() {
         cell.remove();
         misses++;
-        running--;
-        if (misses >= 10) {
-          finished = true;
-          return;
-        }
+        if (misses >= 10) { finished = true; return; }
         if (!finished) tryNext();
-      };
+      }
 
-      imgEl.src = s;
+      if (ext === CONFIG.vidExt) {
+        // Probe video via fetch HEAD to avoid loading the whole file
+        const vid = document.createElement('video');
+        vid.preload = 'metadata';
+        vid.muted = true;
+        vid.playsInline = true;
+
+        // Show thumbnail from first frame
+        const imgThumb = document.createElement('img');
+        imgThumb.alt = 'video ' + num;
+        imgThumb.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity 0.25s;';
+
+        // Play icon badge
+        const playBadge = document.createElement('div');
+        playBadge.className = 'vid-play';
+        playBadge.innerHTML = `<svg viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="11" fill="rgba(0,0,0,0.35)"/><polygon points="10,8 17,12 10,16" fill="white"/></svg>`;
+
+        cell.appendChild(imgThumb);
+        cell.appendChild(playBadge);
+        cell.appendChild(ov);
+
+        vid.onloadedmetadata = () => {
+          // Grab a thumbnail by rendering to canvas
+          vid.currentTime = 0.1;
+        };
+        vid.onseeked = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 200; canvas.height = 200;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(vid, 0, 0, 200, 200);
+            imgThumb.src = canvas.toDataURL('image/jpeg', 0.7);
+            imgThumb.style.opacity = '1';
+          } catch(e) {}
+          vid.src = '';
+          onFound();
+        };
+        vid.onerror = onMiss;
+        vid.src = s;
+      } else {
+        const imgEl = document.createElement('img');
+        imgEl.alt = 'photo ' + num;
+        cell.appendChild(imgEl);
+        cell.appendChild(ov);
+
+        imgEl.onload = () => { onFound(); };
+        imgEl.onerror = onMiss;
+        imgEl.src = s;
+      }
     }
 
-    // Start 8 concurrent probes for speed
     for (let i = 0; i < 8; i++) tryNext();
   }
 
-  // ── Lightbox: scrollable feed starting at clicked index ───
+  // ── Lightbox: scrollable feed ──────────────────────────────
   const liked = new Set();
+  let activeLBVideos = [];
 
   function openLB(tabKey, list, startIdx) {
     const lb = document.getElementById('lightbox');
     const feed = document.getElementById('lbFeed');
     feed.innerHTML = '';
+    activeLBVideos = [];
 
-    // Close button at the top
     const closeBar = document.createElement('div');
     closeBar.style.cssText = 'position:sticky;top:0;z-index:10;display:flex;justify-content:flex-end;padding:10px 14px;background:rgba(0,0,0,0.6);width:100%;';
     closeBar.innerHTML = `<button style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1;padding:4px;">✕</button>`;
     closeBar.querySelector('button').addEventListener('click', closeLB);
     feed.appendChild(closeBar);
 
-    // Render all posts
-    list.forEach((img, i) => {
+    list.forEach((item, i) => {
       const post = document.createElement('div');
       post.className = 'lb-post';
       post.id = 'lb-post-' + i;
@@ -391,12 +433,13 @@ const CONFIG = {
       const likeKey = tabKey + i;
       const isLiked = liked.has(likeKey);
 
-      post.innerHTML = `
+      const topHTML = `
         <div class="lb-post-top">
           <div class="lb-mini-ring"><div class="lb-mini-bg"><span>${initials}</span></div></div>
           <span class="lb-post-uname">${CONFIG.username}</span>
-        </div>
-        <img class="lb-post-img" src="${img.s}" alt="photo ${img.n}" loading="lazy">
+        </div>`;
+
+      const actionsHTML = `
         <div class="lb-post-actions">
           <button class="icon-btn like-btn${isLiked ? ' liked' : ''}" data-key="${likeKey}">
             <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" stroke-width="1.8"/></svg>
@@ -410,6 +453,25 @@ const CONFIG = {
         </div>
         <div class="lb-post-num">${i + 1} / ${list.length}</div>`;
 
+      if (item.isVideo) {
+        post.innerHTML = topHTML + actionsHTML;
+        // Insert video element
+        const vid = document.createElement('video');
+        vid.className = 'lb-post-video';
+        vid.src = item.s;
+        vid.controls = true;
+        vid.playsInline = true;
+        vid.muted = false;
+        vid.preload = 'metadata';
+        // Insert after top bar
+        post.querySelector('.lb-post-top').after(vid);
+        activeLBVideos.push(vid);
+      } else {
+        post.innerHTML = topHTML +
+          `<img class="lb-post-img" src="${item.s}" alt="photo ${item.n}" loading="lazy">` +
+          actionsHTML;
+      }
+
       post.querySelector('.like-btn').addEventListener('click', function () {
         const k = this.dataset.key;
         liked.has(k) ? liked.delete(k) : liked.add(k);
@@ -422,7 +484,6 @@ const CONFIG = {
     lb.classList.add('open');
     document.body.style.overflow = 'hidden';
 
-    // Scroll to the clicked image after render
     requestAnimationFrame(() => {
       const target = document.getElementById('lb-post-' + startIdx);
       if (target) target.scrollIntoView({ behavior: 'instant', block: 'start' });
@@ -430,12 +491,14 @@ const CONFIG = {
   }
 
   function closeLB() {
+    // Pause all videos before closing
+    activeLBVideos.forEach(v => { try { v.pause(); } catch(e){} });
+    activeLBVideos = [];
     document.getElementById('lightbox').classList.remove('open');
     document.getElementById('lbFeed').innerHTML = '';
     document.body.style.overflow = '';
   }
 
-  // Close on backdrop tap
   document.getElementById('lightbox').addEventListener('click', e => {
     if (e.target === document.getElementById('lightbox')) closeLB();
   });
@@ -445,8 +508,9 @@ const CONFIG = {
   });
 
   // ── Boot ──────────────────────────────────────────────────
-  streamGrid('grid-posts', 'count-posts', CONFIG.postsFolder, 'posts');
-  streamGrid('grid-day',   'count-day',   CONFIG.storyFolder,  'day');
+  streamGrid('grid-posts', 'count-posts', CONFIG.postsFolder, CONFIG.imgExt, 'posts');
+  streamGrid('grid-day',   'count-day',   CONFIG.storyFolder, CONFIG.imgExt, 'day');
+  streamGrid('grid-clips', 'count-clips', CONFIG.vidFolder,   CONFIG.vidExt, 'clips');
 })();
 </script>
 </body>
