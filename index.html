@@ -34,26 +34,17 @@
   }
 
   header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+    background: var(--bg); border-bottom: 1px solid var(--border);
     height: var(--header-h);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    display: flex; align-items: center; justify-content: space-between;
     padding: 0 20px;
   }
 
   .logo {
-    font-family: 'Georgia', serif;
-    font-size: 22px;
-    font-style: italic;
-    font-weight: 400;
-    color: var(--text);
-    letter-spacing: -0.5px;
-    text-decoration: none;
+    font-family: 'Georgia', serif; font-size: 22px;
+    font-style: italic; font-weight: 400;
+    color: var(--text); letter-spacing: -0.5px;
   }
 
   .header-icons { display: flex; gap: 20px; align-items: center; }
@@ -67,32 +58,22 @@
 
   /* Profile */
   .profile-section {
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
-    padding: 24px 20px 20px;
-    max-width: 600px;
-    margin: 0 auto;
+    background: var(--bg); border-bottom: 1px solid var(--border);
+    padding: 24px 20px 20px; max-width: 600px; margin: 0 auto;
   }
-
-  .profile-info { flex: 1; min-width: 0; }
 
   .username { font-size: 20px; font-weight: 300; margin-bottom: 14px; color: var(--text); }
 
-  .stats { display: flex; gap: 20px; margin-bottom: 14px; }
-  .stat { text-align: center; }
+  .stats { display: flex; gap: 20px; }
   .stat-num { font-size: 16px; font-weight: 600; display: block; color: var(--text); }
   .stat-label { font-size: 13px; color: var(--text); }
 
   /* Tabs */
   .tabs {
-    background: var(--bg);
-    display: flex;
+    background: var(--bg); display: flex;
     border-bottom: 1px solid var(--border);
-    max-width: 600px;
-    margin: 0 auto;
-    position: sticky;
-    top: var(--header-h);
-    z-index: 90;
+    max-width: 600px; margin: 0 auto;
+    position: sticky; top: var(--header-h); z-index: 90;
   }
 
   .tab {
@@ -106,9 +87,11 @@
   .tab.active { color: var(--text); border-bottom-color: var(--text); }
   .tab svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 
-  /* Grid */
-  .grid-wrap { max-width: 600px; margin: 0 auto; }
+  /* Grid panels */
+  .grid-wrap { max-width: 600px; margin: 0 auto; display: none; }
+  .grid-wrap.active { display: block; }
 
+  /* Posts — 3-col square grid */
   .grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -139,19 +122,30 @@
     .grid-item:hover img { transform: scale(1.04); }
   }
 
+  /* Day — single column, full natural height */
+  #wrap-day .grid {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  #wrap-day .grid-item {
+    aspect-ratio: unset;
+  }
+  #wrap-day .grid-item img {
+    height: auto;
+    width: 100%;
+    object-fit: contain;
+    background: var(--bg);
+  }
+
   /* Loading */
   .loading-msg {
-    text-align: center;
-    padding: 48px 24px;
-    color: var(--text2);
-    font-size: 14px;
-    grid-column: 1/-1;
+    text-align: center; padding: 48px 24px;
+    color: var(--text2); font-size: 14px; grid-column: 1/-1;
   }
   .spinner {
     width: 28px; height: 28px; border: 2px solid var(--border);
     border-top-color: var(--text2); border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    margin: 0 auto 12px;
+    animation: spin 0.7s linear infinite; margin: 0 auto 12px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -173,8 +167,7 @@
   .lightbox.open { display: flex; }
 
   .lb-card {
-    background: var(--bg);
-    width: min(468px, 100vw);
+    background: var(--bg); width: min(468px, 100vw);
     max-height: 100dvh; overflow-y: auto;
     display: flex; flex-direction: column;
   }
@@ -185,9 +178,7 @@
 
   .lb-top {
     display: flex; align-items: center; gap: 10px;
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
+    padding: 10px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0;
   }
 
   .lb-mini-ring {
@@ -203,8 +194,7 @@
   .lb-mini-bg span {
     font-size: 11px; font-weight: 300; color: var(--text2);
     display: flex; align-items: center; justify-content: center;
-    width: 100%; height: 100%; border-radius: 50%;
-    background: var(--bg2);
+    width: 100%; height: 100%; border-radius: 50%; background: var(--bg2);
   }
 
   .lb-uname { font-size: 13px; font-weight: 600; flex: 1; color: var(--text); }
@@ -215,13 +205,11 @@
   }
 
   .lb-img {
-    width: 100%; aspect-ratio: 1; object-fit: cover; display: block;
-    background: var(--border);
+    width: 100%; object-fit: contain; display: block;
+    background: #000; max-height: 80vh;
   }
 
-  .lb-actions {
-    display: flex; gap: 14px; padding: 10px 14px 2px; align-items: center;
-  }
+  .lb-actions { display: flex; gap: 14px; padding: 10px 14px 2px; align-items: center; }
   .lb-actions .icon-btn svg { width: 26px; height: 26px; }
   .lb-actions .icon-btn.liked svg { fill: #ed4956; stroke: #ed4956; }
 
@@ -229,10 +217,8 @@
   .lb-caption { padding: 2px 14px 16px; font-size: 13px; color: var(--text2); }
 
   .lb-nav {
-    position: fixed;
-    background: rgba(255,255,255,0.92);
-    border: none; border-radius: 50%;
-    width: 34px; height: 34px;
+    position: fixed; background: rgba(255,255,255,0.92);
+    border: none; border-radius: 50%; width: 34px; height: 34px;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; box-shadow: 0 1px 6px rgba(0,0,0,0.25);
     top: 50%; transform: translateY(-50%); z-index: 1001;
@@ -255,14 +241,12 @@
 <script>
 const CONFIG = {
   username: "ayush",
-  displayName: "Ayush",
-  bio: "📸 My photos",
 
-  imgFolder: "POSTS",      // subfolder where images live
-  imgExt: "jpg",           // extension: jpg, jpeg, png, webp
-  startAt: 1,              // first image number
-  probe: true,             // true = auto-detect how many images exist
-  probeMax: 200,           // won't look beyond this number
+  postsFolder: "POSTS",   // images for Posts tab  → POSTS/1.jpg, POSTS/2.jpg …
+  storyFolder: "STORY",   // images for Day tab    → STORY/1.jpg, STORY/2.jpg …
+  imgExt: "jpg",          // file extension (jpg / jpeg / png / webp)
+  startAt: 1,             // first number
+  probeMax: 200,          // stop probing after this many
 };
 </script>
 <!-- ============================================================ -->
@@ -280,34 +264,48 @@ const CONFIG = {
 </header>
 
 <div class="profile-section">
-  <div class="profile-info">
-    <div class="username" id="profileUser"></div>
-    <div class="stats">
-      <div class="stat"><span class="stat-num" id="postCount">—</span><span class="stat-label">posts</span></div>
-    </div>
+  <div class="username" id="profileUser"></div>
+  <div class="stats">
+    <div class="stat"><span class="stat-num" id="postCount">—</span><span class="stat-label">posts</span></div>
   </div>
 </div>
 
 <div class="tabs">
-  <button class="tab active">
+  <button class="tab active" data-tab="posts">
     <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
     Posts
   </button>
-  <button class="tab">
-    <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="3"/><path d="M9.5 14.5l5-5M14.5 14.5V9.5H9.5"/></svg>
-    Reels
+  <button class="tab" data-tab="day">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    Day
   </button>
-  <button class="tab">
+  <button class="tab" data-tab="tagged">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
     Tagged
   </button>
 </div>
 
-<div class="grid-wrap">
-  <div class="grid" id="grid">
-    <div class="loading-msg">
-      <div class="spinner"></div>
-      Loading photos…
+<!-- Posts panel -->
+<div class="grid-wrap active" id="wrap-posts">
+  <div class="grid" id="grid-posts">
+    <div class="loading-msg"><div class="spinner"></div>Loading photos…</div>
+  </div>
+</div>
+
+<!-- Day panel -->
+<div class="grid-wrap" id="wrap-day">
+  <div class="grid" id="grid-day">
+    <div class="loading-msg"><div class="spinner"></div>Loading photos…</div>
+  </div>
+</div>
+
+<!-- Tagged panel -->
+<div class="grid-wrap" id="wrap-tagged">
+  <div class="grid">
+    <div class="empty-state">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
+      <h3>No tagged photos</h3>
+      <p>Photos you're tagged in will appear here.</p>
     </div>
   </div>
 </div>
@@ -343,90 +341,82 @@ const CONFIG = {
 
 <script>
 (function () {
-  // Apply config to DOM
   const initials = CONFIG.username.slice(0, 2).toUpperCase();
   document.getElementById('lbInitials').textContent = initials;
   document.getElementById('profileUser').textContent = CONFIG.username;
   document.getElementById('lbUser').textContent = CONFIG.username;
 
-  const grid = document.getElementById('grid');
-  let images = [];   // [{src, num}]
-  let current = 0;
-  const liked = new Set();
+  // ── Tab switching ─────────────────────────────────────────
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('.grid-wrap').forEach(w => w.classList.remove('active'));
+      document.getElementById('wrap-' + tab.dataset.tab).classList.add('active');
+    });
+  });
 
-  // ── Image probing ──────────────────────────────────────────
-  function imgSrc(n) {
-    return `${CONFIG.imgFolder}/${n}.${CONFIG.imgExt}`;
-  }
+  // ── Probing ───────────────────────────────────────────────
+  function src(folder, n) { return `${folder}/${n}.${CONFIG.imgExt}`; }
 
-  function probeImage(n) {
+  function probe(folder, n) {
     return new Promise(resolve => {
-      const img = new Image();
-      img.onload  = () => resolve(true);
-      img.onerror = () => resolve(false);
-      img.src = imgSrc(n);
+      const i = new Image();
+      i.onload = () => resolve(true);
+      i.onerror = () => resolve(false);
+      i.src = src(folder, n);
     });
   }
 
-  // Probe in batches of 5 — fast but not hammering the server
-  async function discoverImages() {
-    const found = [];
-    let n = CONFIG.startAt;
-    let consecutiveMisses = 0;
-
+  async function discover(folder) {
+    const found = []; let n = CONFIG.startAt, misses = 0;
     while (n <= CONFIG.probeMax) {
       const batch = [];
-      for (let i = 0; i < 5 && n <= CONFIG.probeMax; i++, n++) {
-        batch.push({ n, p: probeImage(n) });
-      }
-      const results = await Promise.all(batch.map(b => b.p));
-      results.forEach((ok, i) => {
-        if (ok) { found.push(batch[i].n); consecutiveMisses = 0; }
-        else consecutiveMisses++;
-      });
-      // Stop if 10 consecutive misses (gap tolerance = 2 batches)
-      if (consecutiveMisses >= 10) break;
+      for (let i = 0; i < 5 && n <= CONFIG.probeMax; i++, n++) batch.push({ n, p: probe(folder, n) });
+      const res = await Promise.all(batch.map(b => b.p));
+      res.forEach((ok, i) => { if (ok) { found.push(batch[i].n); misses = 0; } else misses++; });
+      if (misses >= 10) break;
     }
     return found;
   }
 
-  // ── Render grid ────────────────────────────────────────────
-  function renderGrid(nums) {
-    images = nums.map(n => ({ src: imgSrc(n), num: n }));
-    document.getElementById('postCount').textContent = images.length;
-    grid.innerHTML = '';
+  // ── State ─────────────────────────────────────────────────
+  const imgs = { posts: [], day: [] };
+  let cur = 0, activeTab = 'posts';
+  const liked = new Set();
 
-    if (!images.length) {
-      grid.innerHTML = `<div class="empty-state">
+  // ── Render ────────────────────────────────────────────────
+  function renderGrid(gridId, folder, nums, tab) {
+    const el = document.getElementById(gridId);
+    const list = nums.map(n => ({ s: src(folder, n), n }));
+    imgs[tab] = list;
+    el.innerHTML = '';
+    if (!list.length) {
+      el.innerHTML = `<div class="empty-state">
         <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
         <h3>No photos found</h3>
-        <p>Make sure your images are in the <strong>ayush/</strong> folder<br>and named <strong>1.jpg, 2.jpg …</strong></p>
+        <p>Put images in <strong>${folder}/</strong> named <strong>1.jpg, 2.jpg…</strong></p>
       </div>`;
       return;
     }
-
-    images.forEach((img, i) => {
-      const el = document.createElement('div');
-      el.className = 'grid-item';
-      el.innerHTML = `
-        <img src="${img.src}" alt="photo ${img.num}" loading="lazy">
-        <div class="overlay">
-          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        </div>`;
-      el.addEventListener('click', () => openLB(i));
-      grid.appendChild(el);
+    if (tab === 'posts') document.getElementById('postCount').textContent = list.length;
+    list.forEach((img, i) => {
+      const d = document.createElement('div');
+      d.className = 'grid-item';
+      d.innerHTML = `<img src="${img.s}" alt="photo ${img.n}" loading="lazy">
+        <div class="overlay"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>`;
+      d.addEventListener('click', () => { activeTab = tab; openLB(i); });
+      el.appendChild(d);
     });
   }
 
-  // ── Lightbox ───────────────────────────────────────────────
+  // ── Lightbox ──────────────────────────────────────────────
   function openLB(i) {
-    current = i;
-    const img = images[i];
-    document.getElementById('lbImg').src = img.src;
-    document.getElementById('lbCounter').textContent = `Photo ${i + 1} of ${images.length}`;
-    document.getElementById('lbCaption').textContent = img.src;
-    const likeBtn = document.getElementById('lbLike');
-    likeBtn.classList.toggle('liked', liked.has(i));
+    const list = imgs[activeTab]; cur = i;
+    document.getElementById('lbImg').src = list[i].s;
+    document.getElementById('lbCounter').textContent = `${i + 1} / ${list.length}`;
+    document.getElementById('lbCaption').textContent = list[i].s;
+    document.getElementById('lbLike').classList.toggle('liked', liked.has(activeTab + i));
     document.getElementById('lightbox').classList.add('open');
     document.body.style.overflow = 'hidden';
   }
@@ -436,24 +426,22 @@ const CONFIG = {
     document.body.style.overflow = '';
   }
 
-  function moveLB(dir) {
-    current = (current + dir + images.length) % images.length;
-    openLB(current);
+  function moveLB(d) {
+    const list = imgs[activeTab];
+    cur = (cur + d + list.length) % list.length;
+    openLB(cur);
   }
 
   document.getElementById('lbClose').addEventListener('click', closeLB);
-  document.getElementById('lightbox').addEventListener('click', e => {
-    if (e.target === document.getElementById('lightbox')) closeLB();
-  });
+  document.getElementById('lightbox').addEventListener('click', e => { if (e.target.id === 'lightbox') closeLB(); });
   document.getElementById('lbPrev').addEventListener('click', () => moveLB(-1));
   document.getElementById('lbNext').addEventListener('click', () => moveLB(1));
-
   document.getElementById('lbLike').addEventListener('click', function () {
-    liked.has(current) ? liked.delete(current) : liked.add(current);
-    this.classList.toggle('liked', liked.has(current));
+    const k = activeTab + cur;
+    liked.has(k) ? liked.delete(k) : liked.add(k);
+    this.classList.toggle('liked', liked.has(k));
   });
 
-  // Keyboard nav
   document.addEventListener('keydown', e => {
     if (!document.getElementById('lightbox').classList.contains('open')) return;
     if (e.key === 'Escape') closeLB();
@@ -461,17 +449,16 @@ const CONFIG = {
     if (e.key === 'ArrowRight') moveLB(1);
   });
 
-  // Touch swipe
   let tx = 0;
-  const lbCard = document.querySelector('.lb-card');
-  lbCard.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
-  lbCard.addEventListener('touchend', e => {
+  document.querySelector('.lb-card').addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
+  document.querySelector('.lb-card').addEventListener('touchend', e => {
     const dx = e.changedTouches[0].clientX - tx;
     if (Math.abs(dx) > 45) moveLB(dx < 0 ? 1 : -1);
   }, { passive: true });
 
-  // ── Boot ───────────────────────────────────────────────────
-  discoverImages().then(renderGrid);
+  // ── Boot ──────────────────────────────────────────────────
+  discover(CONFIG.postsFolder).then(n => renderGrid('grid-posts', CONFIG.postsFolder, n, 'posts'));
+  discover(CONFIG.storyFolder).then(n => renderGrid('grid-day',   CONFIG.storyFolder,   n, 'day'));
 })();
 </script>
 </body>
