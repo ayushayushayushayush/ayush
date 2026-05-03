@@ -1356,30 +1356,22 @@ const CONFIG = {
   function sendNotifications(message) {
     const time = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
 
-    // 1. Get IP via ipify (reliable), then enrich with ip-api geo data
-    fetch('https://api.ipify.org?format=json')
+    // 1. Single call to ipapi.co — supports CORS + HTTPS, returns IP + full geo
+    fetch('https://ipapi.co/json/')
       .then(r => r.json())
-      .then(d => d.ip)
-      .catch(() => 'unknown')
-      .then(resolvedIp => {
-        if (!resolvedIp || resolvedIp === 'unknown') return Promise.resolve({ query: 'unknown' });
-        return fetch('https://ip-api.com/json/' + resolvedIp + '?fields=status,query,city,regionName,country,zip,isp,lat,lon,mobile,proxy,hosting')
-          .then(r => r.json())
-          .then(data => { if (!data || data.status === 'fail') return { query: resolvedIp }; data.query = data.query || resolvedIp; return data; })
-          .catch(() => ({ query: resolvedIp }));
-      })
+      .catch(() => ({}))
       .then(geo => {
-        const ip = geo?.query || 'unknown';
-        const city    = geo?.city    || '';
-        const region  = geo?.regionName || '';
-        const country = geo?.country || '';
-        const zip     = geo?.zip     || '';
-        const isp     = geo?.isp     || '';
-        const lat     = geo?.lat     || '';
-        const lon     = geo?.lon     || '';
-        const mobile  = geo?.mobile  ? 'Yes' : 'No';
-        const proxy   = geo?.proxy   ? '⚠️ Yes' : 'No';
-        const hosting = geo?.hosting ? '⚠️ Yes (VPN/datacenter)' : 'No';
+        const ip      = geo?.ip       || 'unknown';
+        const city    = geo?.city     || '';
+        const region  = geo?.region   || '';
+        const country = geo?.country_name || '';
+        const zip     = geo?.postal   || '';
+        const isp     = geo?.org      || '';
+        const lat     = geo?.latitude  || '';
+        const lon     = geo?.longitude || '';
+        const mobile  = '';
+        const proxy   = '';
+        const hosting = '';
         const mapsUrl = (lat && lon) ? `https://maps.google.com/?q=${lat},${lon}` : '';
 
         const locationLine = [city, region, zip, country].filter(Boolean).join(', ');
