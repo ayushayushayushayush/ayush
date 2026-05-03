@@ -450,6 +450,17 @@ const CONFIG = {
               <button class="s-toggle on" id="toggleEffect"></button>
             </div>
 
+            <!-- Layer toggle -->
+            <div class="s-row">
+              <div>
+                <div class="s-label">Layer</div>
+              </div>
+              <div style="display:flex;gap:0;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;">
+                <button class="layer-btn active" id="layerBehind" style="padding:5px 12px;font-size:12px;font-weight:500;background:var(--text);color:var(--bg);border:none;cursor:pointer;">Behind</button>
+                <button class="layer-btn" id="layerAbove" style="padding:5px 12px;font-size:12px;font-weight:500;background:none;color:var(--text2);border:none;cursor:pointer;">Above</button>
+              </div>
+            </div>
+
             <!-- Speed -->
             <div class="s-slider-wrap">
               <div class="s-slider-label"><span>Speed</span><span id="speedVal">Medium</span></div>
@@ -749,9 +760,8 @@ const CONFIG = {
   (function() {
     const canvas = document.getElementById('confettiCanvas');
     const ctx = canvas.getContext('2d');
-    let pieces = [], raf = null;
+    let pieces = [], bolts = [], boltTimer = 0, raf = null;
 
-    // ── Color palettes ──────────────────────────────────────
     const PALETTES = {
       multicolor: ['#ff6b9d','#c44dff','#4dc9ff','#ff9f43','#54e346','#f7d716','#ff6348','#70d6ff','#e9ff70','#ff85a1'],
       rainbow:    ['#ff0000','#ff7700','#ffff00','#00cc00','#0000ff','#8b00ff','#ff1493'],
@@ -760,326 +770,324 @@ const CONFIG = {
       gold:       ['#f7d716','#f09433','#e6683c','#ffd700','#ffb700','#e8a000'],
     };
 
-    // ── Per-effect settings state ────────────────────────────
-    const EFFECTS = ['confetti','rain','snow','lightning'];
-    const state = {};
-    EFFECTS.forEach(e => {
-      state[e] = { enabled: true, speed: 3, amount: 3, color: 'multicolor' };
-    });
-    // Rain/snow/lightning don't use color picker — lock them
-    state.rain.color = 'white';
-    state.snow.color = 'white';
-    state.lightning.color = 'white';
-
+    // Global state — only ONE effect active at a time
+    // activeEffect = which effect runs; 'none' = disabled
+    const settings = {
+      confetti: { speed: 3, amount: 3, color: 'multicolor' },
+      rain:     { speed: 3, amount: 3, color: 'white' },
+      snow:     { speed: 3, amount: 3, color: 'white' },
+      lightning:{ speed: 3, amount: 3, color: 'white' },
+    };
     let activeEffect = 'confetti';
+    let effectEnabled = true;
+    let layerAbove = false; // false = behind images, true = above images
 
-    // ── Canvas resize ────────────────────────────────────────
-    function resize() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+    function applyLayer() {
+      canvas.style.zIndex = layerAbove ? '1002' : '1000';
     }
+    applyLayer();
 
-    // ── Piece factories ──────────────────────────────────────
-    function speedMult(s) { return [0.3, 0.55, 1, 1.6, 2.5][s - 1]; }
-    function countFor(s, base) { return Math.round(base * [0.25, 0.5, 1, 1.7, 2.8][s - 1]); }
+    function sm() { return [0.3, 0.55, 1, 1.6, 2.5][settings[activeEffect].speed - 1]; }
+    function count(base) { return Math.round(base * [0.25, 0.5, 1, 1.7, 2.8][settings[activeEffect].amount - 1]); }
 
-    function makeConfettiPiece(st) {
-      const pal = PALETTES[st.color] || PALETTES.multicolor;
-      const sm = speedMult(st.speed);
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+
+    // ── Factories ─────────────────────────────────────────────
+    function mkConfetti() {
+      const pal = PALETTES[settings.confetti.color] || PALETTES.multicolor;
+      const s = sm();
       return {
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        w: Math.random() * 7 + 4,
-        h: Math.random() * 4 + 3,
+        x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+        w: Math.random() * 7 + 4, h: Math.random() * 4 + 3,
         color: pal[Math.floor(Math.random() * pal.length)],
-        speed: (Math.random() * 0.6 + 0.3) * sm,
-        drift: (Math.random() - 0.5) * 0.4 * sm,
+        vy: (Math.random() * 0.6 + 0.3) * s,
+        vx: (Math.random() - 0.5) * 0.4 * s,
         angle: Math.random() * Math.PI * 2,
-        spin: (Math.random() - 0.5) * 0.03 * sm,
+        spin: (Math.random() - 0.5) * 0.03 * s,
         opacity: Math.random() * 0.5 + 0.5,
-        type: 'confetti',
       };
     }
 
-    function makeRainDrop(st) {
-      const sm = speedMult(st.speed);
+    function mkRain() {
+      const s = sm();
       return {
-        x: Math.random() * canvas.width,
-        y: Math.random() * -canvas.height,
+        x: Math.random() * canvas.width, y: Math.random() * canvas.height,
         len: Math.random() * 14 + 8,
-        speed: (Math.random() * 6 + 8) * sm,
-        opacity: Math.random() * 0.3 + 0.2,
-        type: 'rain',
+        vy: (Math.random() * 6 + 8) * s,
+        opacity: Math.random() * 0.35 + 0.2,
       };
     }
 
-    function makeSnowflake(st) {
-      const sm = speedMult(st.speed);
+    function mkSnow() {
+      const s = sm();
       return {
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
+        x: Math.random() * canvas.width, y: Math.random() * canvas.height,
         r: Math.random() * 3 + 1.5,
-        speed: (Math.random() * 0.5 + 0.3) * sm,
-        drift: (Math.random() - 0.5) * 0.5 * sm,
+        vy: (Math.random() * 0.5 + 0.3) * s,
+        vx: (Math.random() - 0.5) * 0.4 * s,
         wobble: Math.random() * Math.PI * 2,
-        wobbleSpeed: (Math.random() * 0.02 + 0.005) * sm,
+        wobbleSpd: (Math.random() * 0.02 + 0.005) * s,
         opacity: Math.random() * 0.5 + 0.4,
-        type: 'snow',
       };
     }
 
-    // Lightning bolt store
-    let bolts = [];
-    let boltTimer = 0;
-
-    function makeBolt(st) {
-      const sm = speedMult(st.speed);
+    function mkBolt() {
       const x = Math.random() * canvas.width;
       const segs = Math.floor(Math.random() * 4 + 4);
-      const pts = [{x, y: 0}];
-      for (let i = 1; i <= segs; i++) {
-        pts.push({ x: pts[i-1].x + (Math.random()-0.5)*80, y: (canvas.height / segs) * i });
-      }
-      return { pts, life: 1, decay: 0.04 * sm, width: Math.random() * 2 + 1.5 };
+      const pts = [{ x, y: 0 }];
+      for (let i = 1; i <= segs; i++)
+        pts.push({ x: pts[i-1].x + (Math.random()-0.5)*90, y: (canvas.height / segs) * i });
+      return { pts, life: 1, decay: 0.035 * sm(), width: Math.random() * 1.5 + 1 };
     }
 
-    // ── Init pieces ─────────────────────────────────────────
-    function initPieces() {
-      const st = state[activeEffect];
-      const base = { confetti: 80, rain: 120, snow: 90, lightning: 0 };
-      const count = countFor(st.amount, base[activeEffect] || 80);
-      pieces = [];
-      bolts = [];
-      boltTimer = 0;
+    // ── Init ─────────────────────────────────────────────────
+    function init() {
+      pieces = []; bolts = []; boltTimer = 0;
       if (activeEffect === 'confetti') {
-        for (let i = 0; i < count; i++) pieces.push(makeConfettiPiece(st));
+        const n = count(80);
+        for (let i = 0; i < n; i++) pieces.push(mkConfetti());
       } else if (activeEffect === 'rain') {
-        for (let i = 0; i < count; i++) { const p = makeRainDrop(st); p.y = Math.random() * canvas.height; pieces.push(p); }
+        const n = count(130);
+        for (let i = 0; i < n; i++) pieces.push(mkRain());
       } else if (activeEffect === 'snow') {
-        for (let i = 0; i < count; i++) pieces.push(makeSnowflake(st));
+        const n = count(90);
+        for (let i = 0; i < n; i++) pieces.push(mkSnow());
       }
-      // lightning pieces are handled separately
+      // lightning: bolts generated on-the-fly in tick
     }
 
-    // ── Draw functions ───────────────────────────────────────
-    function drawConfetti(p) {
+    // ── Draw helpers ─────────────────────────────────────────
+    function drawConfettiP(p) {
       ctx.save();
       ctx.globalAlpha = p.opacity;
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.angle);
+      ctx.translate(p.x, p.y); ctx.rotate(p.angle);
       ctx.fillStyle = p.color;
       ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
       ctx.restore();
     }
 
-    function drawRain(p) {
+    function drawRainP(p) {
       ctx.save();
       ctx.globalAlpha = p.opacity;
-      ctx.strokeStyle = '#a8d8ff';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y);
-      ctx.lineTo(p.x - 1, p.y + p.len);
-      ctx.stroke();
+      ctx.strokeStyle = '#a8d8ff'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - 1, p.y + p.len);
+      ctx.stroke(); ctx.restore();
+    }
+
+    function drawSnowP(p) {
+      ctx.save();
+      ctx.globalAlpha = p.opacity; ctx.fillStyle = '#e8f4ff';
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
       ctx.restore();
     }
 
-    function drawSnow(p) {
+    function drawBoltP(b) {
       ctx.save();
-      ctx.globalAlpha = p.opacity;
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-      ctx.fill();
-      ctx.restore();
-    }
-
-    function drawBolt(b) {
-      ctx.save();
-      ctx.globalAlpha = b.life * 0.9;
-      ctx.strokeStyle = '#fff';
-      ctx.shadowColor = '#c8a0ff';
-      ctx.shadowBlur = 18;
-      ctx.lineWidth = b.width;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(b.pts[0].x, b.pts[0].y);
+      ctx.globalAlpha = b.life * 0.95;
+      ctx.strokeStyle = '#ffffff'; ctx.shadowColor = '#b080ff';
+      ctx.shadowBlur = 20; ctx.lineWidth = b.width; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(b.pts[0].x, b.pts[0].y);
       for (let i = 1; i < b.pts.length; i++) ctx.lineTo(b.pts[i].x, b.pts[i].y);
       ctx.stroke();
-      // glow pass
-      ctx.globalAlpha = b.life * 0.3;
-      ctx.strokeStyle = '#e8c0ff';
-      ctx.lineWidth = b.width * 4;
-      ctx.shadowBlur = 30;
-      ctx.stroke();
+      ctx.globalAlpha = b.life * 0.25; ctx.lineWidth = b.width * 5;
+      ctx.strokeStyle = '#d0a0ff'; ctx.shadowBlur = 40; ctx.stroke();
       ctx.restore();
     }
 
     // ── Tick ─────────────────────────────────────────────────
     function tick() {
-      const st = state[activeEffect];
-      const sm = speedMult(st.speed);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       if (activeEffect === 'confetti') {
         pieces.forEach(p => {
-          p.y += p.speed; p.x += p.drift; p.angle += p.spin;
+          p.y += p.vy; p.x += p.vx; p.angle += p.spin;
           if (p.y > canvas.height + 20) { p.y = -20; p.x = Math.random() * canvas.width; }
           if (p.x < -20) p.x = canvas.width + 20;
           if (p.x > canvas.width + 20) p.x = -20;
-          drawConfetti(p);
+          drawConfettiP(p);
         });
+
       } else if (activeEffect === 'rain') {
         pieces.forEach(p => {
-          p.y += p.speed;
+          p.y += p.vy;
           if (p.y > canvas.height + 20) { p.y = -20; p.x = Math.random() * canvas.width; }
-          drawRain(p);
+          drawRainP(p);
         });
+
       } else if (activeEffect === 'snow') {
         pieces.forEach(p => {
-          p.wobble += p.wobbleSpeed;
-          p.y += p.speed;
-          p.x += p.drift + Math.sin(p.wobble) * 0.4;
+          p.wobble += p.wobbleSpd;
+          p.y += p.vy;
+          p.x += p.vx + Math.sin(p.wobble) * 0.5;
           if (p.y > canvas.height + 10) { p.y = -10; p.x = Math.random() * canvas.width; }
-          drawSnow(p);
+          drawSnowP(p);
         });
+
       } else if (activeEffect === 'lightning') {
-        const base = { confetti: 80, rain: 120, snow: 90, lightning: 0 };
-        const freq = Math.max(10, Math.round(120 / (countFor(st.amount, 5) || 1) / sm));
+        // Frequency: amount 1=very rare … 5=frequent; speed affects fade rate
+        const intervals = [240, 140, 80, 45, 20];
+        const freq = intervals[settings.lightning.amount - 1];
         boltTimer++;
-        if (boltTimer >= freq) {
-          bolts.push(makeBolt(st));
-          boltTimer = 0;
-        }
+        if (boltTimer >= freq) { bolts.push(mkBolt()); boltTimer = 0; }
+        bolts.forEach(b => { b.life -= b.decay; drawBoltP(b); });
         bolts = bolts.filter(b => b.life > 0);
-        bolts.forEach(b => { b.life -= b.decay; drawBolt(b); });
       }
 
       raf = requestAnimationFrame(tick);
     }
 
     // ── Public API ───────────────────────────────────────────
-    window.startEffect = function() {
-      const st = state[activeEffect];
-      if (!st.enabled) return;
-      resize();
-      initPieces();
-      canvas.classList.add('active');
-      if (raf) cancelAnimationFrame(raf);
-      tick();
+    window.FX = {
+      // Called when lightbox opens
+      start() {
+        if (!effectEnabled) return;
+        if (raf) cancelAnimationFrame(raf);
+        resize(); init();
+        canvas.classList.add('active');
+        tick();
+      },
+      // Called when lightbox closes
+      stop() {
+        if (raf) { cancelAnimationFrame(raf); raf = null; }
+        canvas.classList.remove('active');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      },
+      // Switch which effect is active (only one at a time)
+      setEffect(name) {
+        activeEffect = name;
+        // If LB open, restart with new effect
+        if (canvas.classList.contains('active')) { if (raf) cancelAnimationFrame(raf); init(); tick(); }
+      },
+      setEnabled(val) {
+        effectEnabled = val;
+        if (!val) window.FX.stop();
+        else if (document.getElementById('lightbox').classList.contains('open')) window.FX.start();
+      },
+      setSetting(key, val) {
+        settings[activeEffect][key] = val;
+        // Live-update: restart pieces if LB is open
+        if (canvas.classList.contains('active')) { if (raf) cancelAnimationFrame(raf); init(); tick(); }
+      },
+      setLayer(above) {
+        layerAbove = above;
+        applyLayer();
+      },
+      getLayer() { return layerAbove; },
+      getActive() { return activeEffect; },
+      isEnabled() { return effectEnabled; },
     };
 
-    window.stopEffect = function() {
-      if (raf) { cancelAnimationFrame(raf); raf = null; }
-      canvas.classList.remove('active');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    };
+    window.startEffect = () => window.FX.start();
+    window.stopEffect  = () => window.FX.stop();
 
-    window.getEffectState = () => state;
-    window.getActiveEffect = () => activeEffect;
-    window.setActiveEffect = (e) => { activeEffect = e; };
-    window.applyEffectState = (effect, key, val) => {
-      state[effect][key] = val;
-      // If lightbox is open and this is the active effect, restart
-      if (document.getElementById('lightbox').classList.contains('open') && effect === activeEffect && state[effect].enabled) {
-        resize(); initPieces();
-      }
-    };
-
-    window.addEventListener('resize', () => {
-      if (canvas.classList.contains('active')) resize();
-    });
-
-    // compat shim for old callers
-    window.startConfetti = window.startEffect;
-    window.stopConfetti = window.stopEffect;
+    window.addEventListener('resize', () => { if (canvas.classList.contains('active')) resize(); });
   })();
 
   // ── Settings panel logic ─────────────────────────────────
   (function() {
     const overlay = document.getElementById('settingsOverlay');
-    const EFFECTS = ['confetti','rain','snow','lightning'];
-    const SPEED_LABELS = ['Very Slow','Slow','Medium','Fast','Very Fast'];
+    const SPEED_LABELS  = ['Very Slow','Slow','Medium','Fast','Very Fast'];
     const AMOUNT_LABELS = ['Very Few','Few','Medium','Many','Very Many'];
-    let currentEffect = 'confetti';
 
-    function openSettings() { overlay.classList.add('open'); renderSettings(); }
-    function closeSettings() { overlay.classList.remove('open'); }
+    // The tab we're viewing in the settings panel (not necessarily the active effect)
+    let viewEffect = 'confetti';
 
-    document.getElementById('settingsBtn').addEventListener('click', openSettings);
-    document.getElementById('settingsClose').addEventListener('click', closeSettings);
-    overlay.addEventListener('click', e => { if (e.target === overlay) closeSettings(); });
+    document.getElementById('settingsBtn').addEventListener('click', () => {
+      overlay.classList.add('open');
+      // Sync view to current active effect
+      viewEffect = window.FX.getActive();
+      document.querySelectorAll('.s-effect-tab').forEach(b =>
+        b.classList.toggle('active', b.dataset.effect === viewEffect));
+      renderSettings();
+    });
+    document.getElementById('settingsClose').addEventListener('click', () => overlay.classList.remove('open'));
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
 
-    // Accordion
-    window.toggleSection = function(id) {
-      document.getElementById(id).classList.toggle('open');
-    };
+    window.toggleSection = id => document.getElementById(id).classList.toggle('open');
 
-    // Effect tabs
+    // Switching tabs in the settings panel
     document.getElementById('effectTabs').addEventListener('click', e => {
       const btn = e.target.closest('.s-effect-tab');
       if (!btn) return;
-      currentEffect = btn.dataset.effect;
+      viewEffect = btn.dataset.effect;
       document.querySelectorAll('.s-effect-tab').forEach(b => b.classList.toggle('active', b === btn));
       renderSettings();
     });
 
     function renderSettings() {
-      const st = window.getEffectState()[currentEffect];
+      const st = window.FX.getSettings()[viewEffect];
+      const isActive = window.FX.getActive() === viewEffect;
 
-      // Toggle
+      // Toggle reflects: is this the active effect AND enabled?
       const tog = document.getElementById('toggleEffect');
-      tog.classList.toggle('on', st.enabled);
+      tog.classList.toggle('on', isActive && window.FX.isEnabled());
 
-      // Speed
-      const spSlider = document.getElementById('speedSlider');
-      spSlider.value = st.speed;
+      document.getElementById('speedSlider').value = st.speed;
       document.getElementById('speedVal').textContent = SPEED_LABELS[st.speed - 1];
 
-      // Amount
-      const amSlider = document.getElementById('amountSlider');
-      amSlider.value = st.amount;
+      document.getElementById('amountSlider').value = st.amount;
       document.getElementById('amountVal').textContent = AMOUNT_LABELS[st.amount - 1];
 
-      // Color chips — only confetti
-      const colorRow = document.getElementById('colorRow');
-      colorRow.style.display = currentEffect === 'confetti' ? 'block' : 'none';
-      document.querySelectorAll('#colorChips .s-chip').forEach(c => {
-        c.classList.toggle('active', c.dataset.color === st.color);
-      });
+      // Color only for confetti
+      document.getElementById('colorRow').style.display = viewEffect === 'confetti' ? 'block' : 'none';
+      document.querySelectorAll('#colorChips .s-chip').forEach(c =>
+        c.classList.toggle('active', c.dataset.color === st.color));
     }
 
-    // Toggle
+    // Enable toggle — selecting an effect makes it THE active one (one at a time)
     document.getElementById('toggleEffect').addEventListener('click', function() {
-      const st = window.getEffectState()[currentEffect];
-      st.enabled = !st.enabled;
-      this.classList.toggle('on', st.enabled);
-      // If lightbox open, start/stop
-      if (document.getElementById('lightbox').classList.contains('open')) {
-        window.setActiveEffect(currentEffect);
-        st.enabled ? window.startEffect() : window.stopEffect();
+      const isActive = window.FX.getActive() === viewEffect;
+      const isEnabled = window.FX.isEnabled();
+
+      if (isActive && isEnabled) {
+        // Turn off
+        window.FX.setEnabled(false);
+        this.classList.remove('on');
+      } else {
+        // Switch to this effect and enable
+        window.FX.setEffect(viewEffect);
+        window.FX.setEnabled(true);
+        this.classList.add('on');
+        // Also update all other tabs visually — only one can be on
       }
     });
 
-    // Speed
     document.getElementById('speedSlider').addEventListener('input', function() {
       document.getElementById('speedVal').textContent = SPEED_LABELS[this.value - 1];
-      window.applyEffectState(currentEffect, 'speed', +this.value);
+      // Apply to whichever effect we're viewing; if it's not active yet, just store it
+      window.FX.getSettings()[viewEffect].speed = +this.value;
+      if (window.FX.getActive() === viewEffect && window.FX.isEnabled() &&
+          document.getElementById('lightbox').classList.contains('open')) {
+        window.FX.setSetting('speed', +this.value);
+      }
     });
 
-    // Amount
     document.getElementById('amountSlider').addEventListener('input', function() {
       document.getElementById('amountVal').textContent = AMOUNT_LABELS[this.value - 1];
-      window.applyEffectState(currentEffect, 'amount', +this.value);
+      window.FX.getSettings()[viewEffect].amount = +this.value;
+      if (window.FX.getActive() === viewEffect && window.FX.isEnabled() &&
+          document.getElementById('lightbox').classList.contains('open')) {
+        window.FX.setSetting('amount', +this.value);
+      }
     });
 
-    // Color chips
-    document.getElementById('colorChips').addEventListener('click', e => {
+    // Layer buttons
+    function updateLayerBtns() {
+      const above = window.FX.getLayer();
+      document.getElementById('layerBehind').style.cssText = `padding:5px 12px;font-size:12px;font-weight:500;border:none;cursor:pointer;background:${!above ? 'var(--text)' : 'none'};color:${!above ? 'var(--bg)' : 'var(--text2)'};`;
+      document.getElementById('layerAbove').style.cssText  = `padding:5px 12px;font-size:12px;font-weight:500;border:none;cursor:pointer;background:${above  ? 'var(--text)' : 'none'};color:${above  ? 'var(--bg)' : 'var(--text2)'};`;
+    }
+    document.getElementById('layerBehind').addEventListener('click', () => { window.FX.setLayer(false); updateLayerBtns(); });
+    document.getElementById('layerAbove').addEventListener('click',  () => { window.FX.setLayer(true);  updateLayerBtns(); });
       const chip = e.target.closest('.s-chip');
       if (!chip) return;
       document.querySelectorAll('#colorChips .s-chip').forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
-      window.applyEffectState(currentEffect, 'color', chip.dataset.color);
+      window.FX.getSettings()[viewEffect].color = chip.dataset.color;
+      if (window.FX.getActive() === viewEffect && window.FX.isEnabled() &&
+          document.getElementById('lightbox').classList.contains('open')) {
+        window.FX.setSetting('color', chip.dataset.color);
+      }
     });
   })();
   streamGrid('grid-posts', 'count-posts', CONFIG.postsFolder, CONFIG.imgExt, 'posts');
