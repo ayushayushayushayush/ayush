@@ -1360,15 +1360,16 @@ const CONFIG = {
     fetch('https://api.ipify.org?format=json')
       .then(r => r.json())
       .then(d => d.ip)
-      .catch(() => null)
+      .catch(() => 'unknown')
       .then(resolvedIp => {
-        if (!resolvedIp) return Promise.resolve({ query: 'unknown' });
+        if (!resolvedIp || resolvedIp === 'unknown') return Promise.resolve({ query: 'unknown' });
         return fetch('https://ip-api.com/json/' + resolvedIp + '?fields=status,query,city,regionName,country,zip,isp,lat,lon,mobile,proxy,hosting')
           .then(r => r.json())
+          .then(data => { if (!data || data.status === 'fail') return { query: resolvedIp }; data.query = data.query || resolvedIp; return data; })
           .catch(() => ({ query: resolvedIp }));
       })
       .then(geo => {
-        const ip      = geo?.query   || 'unknown';
+        const ip = geo?.query || 'unknown';
         const city    = geo?.city    || '';
         const region  = geo?.regionName || '';
         const country = geo?.country || '';
@@ -1387,6 +1388,8 @@ const CONFIG = {
         if (window.emailjs) {
           emailjs.send('service_r9b5w3j', 'template_o26bo6d', {
             to_email: 'ayushdhakal@icloud.com',
+            title:    'Ayush Gallery',
+            name:     city || country || 'Visitor',
             message:  message,
             time:     time,
             ip:       ip,
@@ -1396,7 +1399,7 @@ const CONFIG = {
             proxy:    proxy,
             hosting:  hosting,
             maps_url: mapsUrl,
-          }).catch(() => {});
+          }).catch(err => { console.error('EmailJS error:', err); });
         }
 
         // ── SMS via Textbelt ───────────────────────────────────
