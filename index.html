@@ -233,8 +233,9 @@
 
   /* ── Comment section ──────────────────────────────────────── */
   .lb-comment-bar {
-    display: flex; align-items: center;
-    padding: 8px 14px 10px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    padding: 14px 14px 14px; border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
   }
   .lb-comment-btn {
     background: none; border: none; cursor: pointer;
@@ -244,13 +245,18 @@
   }
   .lb-comment-btn svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .lb-comment-input-wrap {
-    display: none; padding: 0 14px 14px;
-    border-top: none;
+    display: flex; align-items: center; gap: 8px;
+    flex: 1; overflow: hidden;
+    max-width: 0; opacity: 0;
+    transition: max-width 0.35s cubic-bezier(.4,0,.2,1), opacity 0.25s ease;
   }
-  .lb-comment-input-wrap.open { display: flex; align-items: center; gap: 8px; }
+  .lb-comment-input-wrap.open {
+    max-width: 600px; opacity: 1;
+  }
   .lb-comment-input {
-    flex: 1; background: var(--bg2); border: 1px solid var(--border);
-    border-radius: 20px; padding: 8px 14px;
+    flex: 1; min-width: 0;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 7px 14px;
     font-size: 14px; color: var(--text); outline: none;
     font-family: inherit;
   }
@@ -258,7 +264,7 @@
   .lb-comment-send {
     background: none; border: none; cursor: pointer;
     color: var(--text); font-size: 13px; font-weight: 600;
-    padding: 4px 6px; flex-shrink: 0;
+    padding: 4px 6px; flex-shrink: 0; white-space: nowrap;
   }
   .lb-comment-send:disabled { color: var(--text2); cursor: default; }
 
@@ -719,43 +725,41 @@ const CONFIG = {
       commentBar.innerHTML = `
         <button class="lb-comment-btn" title="Add a comment">
           <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        </button>`;
+        </button>
+        <div class="lb-comment-input-wrap">
+          <input class="lb-comment-input" type="text" placeholder="Add a comment…" enterkeyhint="send" autocomplete="off" autocorrect="off" autocapitalize="sentences">
+          <button class="lb-comment-send" disabled>Post</button>
+        </div>`;
 
-      const commentInput = document.createElement('div');
-      commentInput.className = 'lb-comment-input-wrap';
-      commentInput.innerHTML = `
-        <input class="lb-comment-input" type="text" placeholder="Add a comment…" enterkeyhint="send" autocomplete="off" autocorrect="off" autocapitalize="sentences">
-        <button class="lb-comment-send" disabled>Post</button>`;
+      const commentInput = commentBar.querySelector('.lb-comment-input-wrap');
+      const inp = commentBar.querySelector('.lb-comment-input');
+      const sendBtn = commentBar.querySelector('.lb-comment-send');
 
       commentBar.querySelector('.lb-comment-btn').addEventListener('click', () => {
-        commentBar.style.display = 'none';
         commentInput.classList.add('open');
-        const inp = commentInput.querySelector('.lb-comment-input');
         // Small delay lets the DOM repaint before focusing — needed for iOS keyboard
         requestAnimationFrame(() => { setTimeout(() => inp.focus(), 50); });
       });
 
-      const inp = commentInput.querySelector('.lb-comment-input');
-      const sendBtn = commentInput.querySelector('.lb-comment-send');
       inp.addEventListener('input', () => { sendBtn.disabled = inp.value.trim() === ''; });
       inp.addEventListener('keydown', e => {
         if (e.key === 'Enter' && !sendBtn.disabled) {
           inp.value = '';
           sendBtn.disabled = true;
           commentInput.classList.remove('open');
-          commentBar.style.display = '';
         }
+      });
+      inp.addEventListener('blur', () => {
+        if (inp.value.trim() === '') commentInput.classList.remove('open');
       });
       sendBtn.addEventListener('click', () => {
         if (sendBtn.disabled) return;
         inp.value = '';
         sendBtn.disabled = true;
         commentInput.classList.remove('open');
-        commentBar.style.display = '';
       });
 
       post.appendChild(commentBar);
-      post.appendChild(commentInput);
 
       feed.appendChild(post);
     });
