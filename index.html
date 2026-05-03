@@ -522,7 +522,8 @@ const CONFIG = {
     const countEl = document.getElementById(countId);
     const tabItems = [];
     let n = CONFIG.startAt, misses = 0, finished = false;
-    let loading = false;
+    let activeProbes = 0;
+    const MAX_CONCURRENT = 8;
 
     const PAGE_LIMIT  = 45;  // hard cap per tab
     const PAUSE_AT    = 30;  // pause loading after this many found
@@ -558,7 +559,7 @@ const CONFIG = {
     }
 
     function tryNext() {
-      if (finished || loading) return;
+      if (finished || activeProbes >= MAX_CONCURRENT) return;
       if (n > CONFIG.probeMax) { finished = true; return; }
       if (tabItems.length >= PAGE_LIMIT) { finished = true; return; }
 
@@ -568,7 +569,7 @@ const CONFIG = {
         return;
       }
 
-      loading = true;
+      activeProbes++;
       const num = n++;
       const s = `${folder}/${num}.${ext}`;
 
@@ -590,14 +591,14 @@ const CONFIG = {
         misses = 0;
         cell.addEventListener('click', () => openLB(tabKey, tabItems, idx));
         updateCount();
-        loading = false;
+        activeProbes--;
         tryNext();
       }
 
       function onMiss() {
         cell.remove();
         misses++;
-        loading = false;
+        activeProbes--;
         if (misses >= 10) { finished = true; return; }
         tryNext();
       }
@@ -1079,6 +1080,7 @@ const CONFIG = {
     }
     document.getElementById('layerBehind').addEventListener('click', () => { window.FX.setLayer(false); updateLayerBtns(); });
     document.getElementById('layerAbove').addEventListener('click',  () => { window.FX.setLayer(true);  updateLayerBtns(); });
+    document.getElementById('colorChips').addEventListener('click', e => {
       const chip = e.target.closest('.s-chip');
       if (!chip) return;
       document.querySelectorAll('#colorChips .s-chip').forEach(c => c.classList.remove('active'));
