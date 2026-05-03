@@ -503,13 +503,18 @@ const CONFIG = {
 (function () {
   const initials = CONFIG.username.slice(0, 2).toUpperCase();
 
-  // ── Tab switching ─────────────────────────────────────────
+  // ── Tab switching (lazy-load day/clips on first click) ────
+  const lazyLoaders = {};  // populated below after streamGrid is defined
+
   document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
       document.querySelectorAll('.grid-wrap').forEach(w => w.classList.remove('active'));
       document.getElementById('wrap-' + tab.dataset.tab).classList.add('active');
+      // Trigger lazy load for this tab if not yet started
+      const loader = lazyLoaders[tab.dataset.tab];
+      if (loader) { loader(); delete lazyLoaders[tab.dataset.tab]; }
     });
   });
 
@@ -1062,9 +1067,11 @@ const CONFIG = {
       }
     });
   })();
+  // Posts: start immediately
   streamGrid('grid-posts', 'count-posts', CONFIG.postsFolder, CONFIG.imgExt, 'posts');
-  streamGrid('grid-day',   'count-day',   CONFIG.storyFolder, CONFIG.imgExt, 'day');
-  streamGrid('grid-clips', 'count-clips', CONFIG.vidFolder,   CONFIG.vidExt, 'clips');
+  // Day & Clips: defer until the user clicks the tab
+  lazyLoaders['day']   = () => streamGrid('grid-day',   'count-day',   CONFIG.storyFolder, CONFIG.imgExt, 'day');
+  lazyLoaders['clips'] = () => streamGrid('grid-clips', 'count-clips', CONFIG.vidFolder,   CONFIG.vidExt, 'clips');
 })();
 </script>
 </body>
