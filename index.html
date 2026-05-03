@@ -163,6 +163,7 @@
     background: linear-gradient(135deg, #1a0533 0%, #0d1b4b 40%, #0a2a1a 70%, #2a0a1a 100%);
     align-items: flex-start; justify-content: center;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .lightbox.open { display: flex; }
 
@@ -229,6 +230,37 @@
     width: 100%; aspect-ratio: 1; object-fit: cover; display: block;
     background: #000;
   }
+
+  /* ── Comment section ──────────────────────────────────────── */
+  .lb-comment-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px 12px; border-top: 1px solid var(--border);
+  }
+  .lb-comment-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--text2); padding: 4px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .lb-comment-btn svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .lb-comment-input-wrap {
+    display: none; padding: 0 14px 14px;
+    border-top: none;
+  }
+  .lb-comment-input-wrap.open { display: flex; align-items: center; gap: 8px; }
+  .lb-comment-input {
+    flex: 1; background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 8px 14px;
+    font-size: 14px; color: var(--text); outline: none;
+    font-family: inherit;
+  }
+  .lb-comment-input::placeholder { color: var(--text2); }
+  .lb-comment-send {
+    background: none; border: none; cursor: pointer;
+    color: var(--text); font-size: 13px; font-weight: 600;
+    padding: 4px 6px; flex-shrink: 0;
+  }
+  .lb-comment-send:disabled { color: var(--text2); cursor: default; }
 
   /* ── Settings Panel ────────────────────────────────────────── */
   .settings-overlay {
@@ -680,6 +712,51 @@ const CONFIG = {
       } else {
         post.innerHTML = `<img class="lb-post-img" src="${item.s}" alt="photo ${item.n}" loading="lazy">`;
       }
+
+      // Comment bar
+      const commentBar = document.createElement('div');
+      commentBar.className = 'lb-comment-bar';
+      commentBar.innerHTML = `
+        <button class="lb-comment-btn" title="Add a comment">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </button>
+        <span style="font-size:13px;color:var(--text2);">Add a comment…</span>`;
+
+      const commentInput = document.createElement('div');
+      commentInput.className = 'lb-comment-input-wrap';
+      commentInput.innerHTML = `
+        <input class="lb-comment-input" type="text" placeholder="Add a comment…" enterkeyhint="send" autocomplete="off" autocorrect="off" autocapitalize="sentences">
+        <button class="lb-comment-send" disabled>Post</button>`;
+
+      commentBar.addEventListener('click', () => {
+        commentBar.style.display = 'none';
+        commentInput.classList.add('open');
+        const inp = commentInput.querySelector('.lb-comment-input');
+        // Small delay lets the DOM repaint before focusing — needed for iOS keyboard
+        requestAnimationFrame(() => { setTimeout(() => inp.focus(), 50); });
+      });
+
+      const inp = commentInput.querySelector('.lb-comment-input');
+      const sendBtn = commentInput.querySelector('.lb-comment-send');
+      inp.addEventListener('input', () => { sendBtn.disabled = inp.value.trim() === ''; });
+      inp.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !sendBtn.disabled) {
+          inp.value = '';
+          sendBtn.disabled = true;
+          commentInput.classList.remove('open');
+          commentBar.style.display = '';
+        }
+      });
+      sendBtn.addEventListener('click', () => {
+        if (sendBtn.disabled) return;
+        inp.value = '';
+        sendBtn.disabled = true;
+        commentInput.classList.remove('open');
+        commentBar.style.display = '';
+      });
+
+      post.appendChild(commentBar);
+      post.appendChild(commentInput);
 
       feed.appendChild(post);
     });
