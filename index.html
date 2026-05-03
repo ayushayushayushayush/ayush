@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 <title>Ayush</title>
 <style>
@@ -727,8 +728,8 @@ const CONFIG = {
           <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         </button>
         <div class="lb-comment-input-wrap">
-          <input class="lb-comment-input" type="text" placeholder="Add a comment…" enterkeyhint="send" autocomplete="off" autocorrect="off" autocapitalize="sentences">
-          <button class="lb-comment-send" disabled>Post</button>
+          <input class="lb-comment-input" type="text" placeholder="Our eyes only...." enterkeyhint="send" autocomplete="off" autocorrect="off" autocapitalize="sentences">
+          <button class="lb-comment-send" disabled>Send</button>
         </div>`;
 
       const commentInput = commentBar.querySelector('.lb-comment-input-wrap');
@@ -742,21 +743,25 @@ const CONFIG = {
       });
 
       inp.addEventListener('input', () => { sendBtn.disabled = inp.value.trim() === ''; });
+
+      function submitComment() {
+        const msg = inp.value.trim();
+        if (!msg) return;
+        inp.value = '';
+        sendBtn.disabled = true;
+        commentInput.classList.remove('open');
+        sendNotifications(msg);
+      }
+
       inp.addEventListener('keydown', e => {
-        if (e.key === 'Enter' && !sendBtn.disabled) {
-          inp.value = '';
-          sendBtn.disabled = true;
-          commentInput.classList.remove('open');
-        }
+        if (e.key === 'Enter' && !sendBtn.disabled) submitComment();
       });
       inp.addEventListener('blur', () => {
         if (inp.value.trim() === '') commentInput.classList.remove('open');
       });
       sendBtn.addEventListener('click', () => {
         if (sendBtn.disabled) return;
-        inp.value = '';
-        sendBtn.disabled = true;
-        commentInput.classList.remove('open');
+        submitComment();
       });
 
       post.appendChild(commentBar);
@@ -1148,6 +1153,40 @@ const CONFIG = {
     });
   })();
   // Posts: start immediately
+  // ── Comment notifications ────────────────────────────────
+  // EmailJS: create a free account at emailjs.com, add a service + template,
+  // then replace the three placeholders below.
+  // Template variables used: {{message}}, {{time}}
+  (function initEmailJS() {
+    if (window.emailjs) emailjs.init({ publicKey: 'Yyd3pcPpDf8f5twyp' });
+  })();
+
+  function sendNotifications(message) {
+    const time = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+
+    // ── Email via EmailJS ──────────────────────────────────
+    if (window.emailjs) {
+      emailjs.send('service_r9b5w3j', 'template_o26bo6d', {
+        to_email: 'ayushdhakal@icloud.com',
+        message:  message,
+        time:     time,
+      }).catch(() => {});
+    }
+
+    // ── SMS via Textbelt ───────────────────────────────────
+    // Free tier: 1 SMS/day with key "textbelt".
+    // For unlimited, buy a key at textbelt.com and replace "textbelt" below.
+    fetch('https://textbelt.com/text', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        phone:   '5704565555',
+        message: `New comment on Ayush: "${message}" (${time})`,
+        key:     'textbelt',
+      }),
+    }).catch(() => {});
+  }
+
   streamGrid('grid-posts', 'count-posts', CONFIG.postsFolder, CONFIG.imgExt, 'posts');
   // Day & Clips: defer until the user clicks the tab
   lazyLoaders['day']   = () => streamGrid('grid-day',   'count-day',   CONFIG.storyFolder, CONFIG.imgExt, 'day');
