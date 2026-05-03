@@ -472,7 +472,10 @@
     localStorage.removeItem(KEY_TRIES);
     localStorage.removeItem(KEY_LOCK);
     gate.classList.add('fade-out');
-    setTimeout(function () { gate.style.display = 'none'; }, 420);
+    setTimeout(function () {
+      gate.style.display = 'none';
+      document.dispatchEvent(new Event('gate:unlocked'));
+    }, 420);
   }
 
   function triesLeft() {
@@ -514,7 +517,11 @@
   }
 
   // Check lock on load
-  if (getLockRemaining() > 0) {
+  if (sessionStorage.getItem('gate_ok')) {
+    // Already passed this session — hide gate immediately and boot the page
+    gate.style.display = 'none';
+    document.dispatchEvent(new Event('gate:unlocked'));
+  } else if (getLockRemaining() > 0) {
     inp.disabled = true;
     btn.disabled = true;
     startLockTimer();
@@ -529,6 +536,7 @@
     if (!val) return;
 
     if (val === ANSWER) {
+      sessionStorage.setItem('gate_ok', '1');
       unlock();
       return;
     }
@@ -1399,10 +1407,14 @@ const CONFIG = {
       });
   }
 
-  streamGrid('grid-posts', 'count-posts', CONFIG.postsFolder, CONFIG.imgExt, 'posts');
-  // Day & Clips: defer until the user clicks the tab
-  lazyLoaders['day']   = () => streamGrid('grid-day',   'count-day',   CONFIG.storyFolder, CONFIG.imgExt, 'day');
-  lazyLoaders['clips'] = () => streamGrid('grid-clips', 'count-clips', CONFIG.vidFolder,   CONFIG.vidExt, 'clips');
+  function bootGrids() {
+    streamGrid('grid-posts', 'count-posts', CONFIG.postsFolder, CONFIG.imgExt, 'posts');
+    // Day & Clips: defer until the user clicks the tab
+    lazyLoaders['day']   = () => streamGrid('grid-day',   'count-day',   CONFIG.storyFolder, CONFIG.imgExt, 'day');
+    lazyLoaders['clips'] = () => streamGrid('grid-clips', 'count-clips', CONFIG.vidFolder,   CONFIG.vidExt, 'clips');
+  }
+  // Only start loading images once the auth gate is cleared
+  document.addEventListener('gate:unlocked', bootGrids, { once: true });
 })();
 </script>
 </body>
