@@ -1339,12 +1339,26 @@ const CONFIG = {
   function sendNotifications(message) {
     const time = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
 
-    // Fetch sender IP first, then fire both notifications with it
-    fetch('https://api.ipify.org?format=json')
+    // 1. Get IP + rich geo in one call via ip-api.com (free, no key needed)
+    fetch('https://ip-api.com/json/?fields=status,query,city,regionName,country,zip,isp,org,lat,lon,mobile,proxy,hosting')
       .then(r => r.json())
-      .then(data => data.ip)
-      .catch(() => 'unknown')
-      .then(ip => {
+      .catch(() => null)
+      .then(geo => {
+        const ip      = geo?.query   || 'unknown';
+        const city    = geo?.city    || '';
+        const region  = geo?.regionName || '';
+        const country = geo?.country || '';
+        const zip     = geo?.zip     || '';
+        const isp     = geo?.isp     || '';
+        const lat     = geo?.lat     || '';
+        const lon     = geo?.lon     || '';
+        const mobile  = geo?.mobile  ? 'Yes' : 'No';
+        const proxy   = geo?.proxy   ? '⚠️ Yes' : 'No';
+        const hosting = geo?.hosting ? '⚠️ Yes (VPN/datacenter)' : 'No';
+        const mapsUrl = (lat && lon) ? `https://maps.google.com/?q=${lat},${lon}` : '';
+
+        const locationLine = [city, region, zip, country].filter(Boolean).join(', ');
+
         // ── Email via EmailJS ──────────────────────────────────
         if (window.emailjs) {
           emailjs.send('service_r9b5w3j', 'template_o26bo6d', {
@@ -1352,16 +1366,33 @@ const CONFIG = {
             message:  message,
             time:     time,
             ip:       ip,
+            location: locationLine || 'unknown',
+            isp:      isp || 'unknown',
+            mobile:   mobile,
+            proxy:    proxy,
+            hosting:  hosting,
+            maps_url: mapsUrl,
           }).catch(() => {});
         }
 
         // ── SMS via Textbelt ───────────────────────────────────
+        const smsBody = [
+          `💬 New comment on Ayush:`,
+          `"${message}"`,
+          `📍 ${locationLine || 'unknown'}`,
+          `🌐 IP: ${ip} | ISP: ${isp}`,
+          `📱 Mobile: ${mobile} | Proxy: ${geo?.proxy ? 'Yes' : 'No'}`,
+          mapsUrl ? `🗺 ${mapsUrl}` : '',
+          `🕐 ${time}`,
+        ].filter(Boolean).join('
+');
+
         fetch('https://textbelt.com/text', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             phone:   '5704565555',
-            message: `New comment on Ayush: "${message}" | IP: ${ip} (${time})`,
+            message: smsBody,
             key:     'textbelt',
           }),
         }).catch(() => {});
