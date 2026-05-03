@@ -380,13 +380,188 @@
   }
   .s-chip.active { border-color: var(--text); background: var(--text); color: var(--bg); }
   .s-chip .chip-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── Auth Gate ─────────────────────────────────────────────── */
+  #authGate {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+    transition: opacity 0.4s ease;
+  }
+  #authGate.fade-out { opacity: 0; pointer-events: none; }
+  .gate-card {
+    width: 100%; max-width: 340px;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 20px; text-align: center;
+  }
+  .gate-logo {
+    font-family: 'Georgia', serif; font-size: 30px;
+    font-style: italic; font-weight: 400;
+    color: var(--text); letter-spacing: -0.5px;
+  }
+  .gate-question {
+    font-size: 15px; color: var(--text); line-height: 1.5;
+  }
+  .gate-input {
+    width: 100%; padding: 11px 16px;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    background: var(--bg2); color: var(--text);
+    font-size: 15px; font-family: inherit;
+    outline: none; text-align: center;
+    transition: border-color 0.2s;
+  }
+  .gate-input:focus { border-color: var(--text); }
+  .gate-input.shake {
+    animation: gateShake 0.4s ease;
+    border-color: #ed4956;
+  }
+  @keyframes gateShake {
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-8px)}
+    40%{transform:translateX(8px)}
+    60%{transform:translateX(-5px)}
+    80%{transform:translateX(5px)}
+  }
+  .gate-btn {
+    width: 100%; padding: 12px;
+    background: var(--text); color: var(--bg);
+    border: none; border-radius: 10px;
+    font-size: 15px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+    transition: opacity 0.15s;
+  }
+  .gate-btn:active { opacity: 0.7; }
+  .gate-hint {
+    font-size: 12px; color: var(--text2); min-height: 18px;
+  }
+  .gate-hint.error { color: #ed4956; }
 </style>
 </head>
 <body>
 
+<div id="authGate">
+  <div class="gate-card">
+    <div class="gate-logo">Ayush</div>
+    <div class="gate-question">What is my last name?</div>
+    <input id="gateInput" class="gate-input" type="text" placeholder="Your answer…"
+      autocomplete="off" autocorrect="off" autocapitalize="none" enterkeyhint="go">
+    <button class="gate-btn" id="gateBtn">Continue</button>
+    <div class="gate-hint" id="gateHint"></div>
+  </div>
+</div>
+
+
 <!-- ============================================================
   CONFIG
   ============================================================ -->
+<script>
+(function () {
+  var ANSWER    = 'dhakal';
+  var MAX_TRIES = 3;
+  var LOCK_MS   = 10 * 60 * 1000; // 10 minutes
+  var KEY_TRIES = 'gate_tries';
+  var KEY_LOCK  = 'gate_lock';
+
+  var gate  = document.getElementById('authGate');
+  var inp   = document.getElementById('gateInput');
+  var btn   = document.getElementById('gateBtn');
+  var hint  = document.getElementById('gateHint');
+
+  function unlock() {
+    localStorage.removeItem(KEY_TRIES);
+    localStorage.removeItem(KEY_LOCK);
+    gate.classList.add('fade-out');
+    setTimeout(function () { gate.style.display = 'none'; }, 420);
+  }
+
+  function triesLeft() {
+    return MAX_TRIES - (parseInt(localStorage.getItem(KEY_TRIES) || '0', 10));
+  }
+
+  function startLockTimer() {
+    var remaining = getLockRemaining();
+    if (remaining <= 0) return;
+    updateLockHint();
+    var interval = setInterval(function () {
+      var r = getLockRemaining();
+      if (r <= 0) {
+        clearInterval(interval);
+        localStorage.removeItem(KEY_LOCK);
+        localStorage.removeItem(KEY_TRIES);
+        hint.textContent = '';
+        hint.className = 'gate-hint';
+        inp.disabled = false;
+        btn.disabled = false;
+        inp.focus();
+      } else {
+        updateLockHint();
+      }
+    }, 1000);
+  }
+
+  function getLockRemaining() {
+    var lockUntil = parseInt(localStorage.getItem(KEY_LOCK) || '0', 10);
+    return Math.max(0, lockUntil - Date.now());
+  }
+
+  function updateLockHint() {
+    var r = getLockRemaining();
+    var mins = Math.floor(r / 60000);
+    var secs = Math.floor((r % 60000) / 1000);
+    hint.textContent = 'Too many attempts. Try again in ' + mins + ':' + (secs < 10 ? '0' : '') + secs;
+    hint.className = 'gate-hint error';
+  }
+
+  // Check lock on load
+  if (getLockRemaining() > 0) {
+    inp.disabled = true;
+    btn.disabled = true;
+    startLockTimer();
+  } else if (localStorage.getItem(KEY_TRIES)) {
+    var left = triesLeft();
+    if (left > 0) hint.textContent = left + ' attempt' + (left === 1 ? '' : 's') + ' remaining';
+  }
+
+  function attempt() {
+    if (getLockRemaining() > 0) return;
+    var val = inp.value.trim().toLowerCase();
+    if (!val) return;
+
+    if (val === ANSWER) {
+      unlock();
+      return;
+    }
+
+    var tries = parseInt(localStorage.getItem(KEY_TRIES) || '0', 10) + 1;
+    localStorage.setItem(KEY_TRIES, tries);
+
+    // Shake animation
+    inp.classList.remove('shake');
+    void inp.offsetWidth; // reflow
+    inp.classList.add('shake');
+    inp.value = '';
+    setTimeout(function () { inp.classList.remove('shake'); }, 500);
+
+    if (tries >= MAX_TRIES) {
+      localStorage.setItem(KEY_LOCK, Date.now() + LOCK_MS);
+      inp.disabled = true;
+      btn.disabled = true;
+      startLockTimer();
+    } else {
+      var left = MAX_TRIES - tries;
+      hint.textContent = 'Incorrect. ' + left + ' attempt' + (left === 1 ? '' : 's') + ' remaining.';
+      hint.className = 'gate-hint error';
+      inp.focus();
+    }
+  }
+
+  btn.addEventListener('click', attempt);
+  inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') attempt(); });
+  inp.focus();
+})();
+</script>
+
 <script>
 const CONFIG = {
   username: "ayush",
