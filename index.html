@@ -447,7 +447,7 @@ const CONFIG = {
               <div>
                 <div class="s-label">Enable effect</div>
               </div>
-              <button class="s-toggle on" id="toggleEffect"></button>
+              <button class="s-toggle" id="toggleEffect"></button>
             </div>
 
             <!-- Layer toggle -->
@@ -780,7 +780,7 @@ const CONFIG = {
       lightning:{ speed: 3, amount: 3, color: 'white' },
     };
     let activeEffect = 'confetti';
-    let effectEnabled = true;
+    let effectEnabled = false;
     let layerAbove = false; // false = behind images, true = above images
 
     function applyLayer() {
