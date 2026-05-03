@@ -269,6 +269,26 @@
   }
   .lb-comment-send:disabled { color: var(--text2); cursor: default; }
 
+
+  /* ── Clips list (vertical scroll) ─────────────────────────── */
+  #wrap-clips .grid {
+    display: flex; flex-direction: column; gap: 12px;
+    padding: 12px;
+  }
+  .clip-item {
+    width: 100%; border-radius: 12px; overflow: hidden;
+    background: #000; position: relative;
+    cursor: pointer;
+  }
+  .clip-item video {
+    width: 100%; display: block; max-height: 80vh;
+    object-fit: contain; background: #000;
+  }
+  .clip-item .clip-num {
+    position: absolute; top: 8px; left: 10px;
+    font-size: 11px; color: rgba(255,255,255,0.6);
+    font-weight: 600; pointer-events: none;
+  }
   /* ── Settings Panel ────────────────────────────────────────── */
   .settings-overlay {
     display: none; position: fixed; inset: 0; z-index: 2000;
@@ -809,10 +829,11 @@ const CONFIG = {
 
       function onFound() {
         const idx = tabItems.length;
-        tabItems.push({ s, n: num, isVideo: ext === CONFIG.vidExt });
-        cell.classList.remove('skeleton');
+        const isVid = ext === CONFIG.vidExt;
+        tabItems.push({ s, n: num, isVideo: isVid });
+        if (!isVid) cell.classList.remove('skeleton');
         misses = 0;
-        cell.addEventListener('click', () => openLB(tabKey, tabItems, idx));
+        if (!isVid) cell.addEventListener('click', () => openLB(tabKey, tabItems, idx));
         updateCount();
         activeProbes--;
         tryNext();
@@ -827,38 +848,26 @@ const CONFIG = {
       }
 
       if (ext === CONFIG.vidExt) {
+        // Clips use a full-width list layout — replace the square grid cell
+        cell.className = 'clip-item';
+        cell.style.cssText = '';  // clear skeleton styles
+
         const vid = document.createElement('video');
-        vid.preload = 'metadata';
-        vid.muted = true;
-        vid.playsInline = true;
-
-        const imgThumb = document.createElement('img');
-        imgThumb.alt = 'video ' + num;
-        imgThumb.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity 0.25s;';
-
-        const playBadge = document.createElement('div');
-        playBadge.className = 'vid-play';
-        playBadge.innerHTML = `<svg viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="11" fill="rgba(0,0,0,0.35)"/><polygon points="10,8 17,12 10,16" fill="white"/></svg>`;
-
-        cell.appendChild(imgThumb);
-        cell.appendChild(playBadge);
-        cell.appendChild(ov);
-
-        vid.onloadedmetadata = () => { vid.currentTime = 0.1; };
-        vid.onseeked = () => {
-          try {
-            const canvas = document.createElement('canvas');
-            canvas.width = 200; canvas.height = 200;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(vid, 0, 0, 200, 200);
-            imgThumb.src = canvas.toDataURL('image/jpeg', 0.7);
-            imgThumb.style.opacity = '1';
-          } catch(e) {}
-          vid.src = '';
-          onFound();
-        };
-        vid.onerror = onMiss;
         vid.src = s;
+        vid.controls = true;
+        vid.playsInline = true;
+        vid.preload = 'metadata';
+        vid.muted = false;
+
+        const numBadge = document.createElement('div');
+        numBadge.className = 'clip-num';
+        numBadge.textContent = '#' + num;
+
+        cell.appendChild(vid);
+        cell.appendChild(numBadge);
+
+        vid.onloadedmetadata = () => { onFound(); };
+        vid.onerror = onMiss;
       } else {
         const imgEl = document.createElement('img');
         imgEl.alt = 'photo ' + num;
