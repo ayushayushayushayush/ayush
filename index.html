@@ -49,6 +49,14 @@
   }
 
   .header-icons { display: flex; gap: 20px; align-items: center; }
+  .header-comment-wrap { display: flex; align-items: center; gap: 8px; }
+  .header-comment-input-wrap {
+    display: flex; align-items: center; gap: 8px;
+    overflow: hidden;
+    max-width: 0; opacity: 0;
+    transition: max-width 0.35s cubic-bezier(.4,0,.2,1), opacity 0.25s ease;
+  }
+  .header-comment-input-wrap.open { max-width: 260px; opacity: 1; }
 
   .icon-btn {
     background: none; border: none; cursor: pointer;
@@ -606,9 +614,15 @@ const CONFIG = {
 <header>
   <span class="logo">Ayush</span>
   <div class="header-icons">
-    <button class="icon-btn">
-      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    </button>
+    <div class="header-comment-wrap">
+      <button class="icon-btn" id="headerMsgBtn">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </button>
+      <div class="header-comment-input-wrap" id="headerCommentWrap">
+        <input class="lb-comment-input" id="headerCommentInput" type="text" placeholder="Our eyes only...." enterkeyhint="send" autocomplete="off" autocorrect="off" autocapitalize="sentences">
+        <button class="lb-comment-send" id="headerCommentSend" disabled>Send</button>
+      </div>
+    </div>
     <button class="icon-btn" id="settingsBtn">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
@@ -1244,6 +1258,34 @@ const CONFIG = {
 
     // The tab we're viewing in the settings panel (not necessarily the active effect)
     let viewEffect = 'confetti';
+
+    // ── Header message button ─────────────────────────────────
+    (function () {
+      const btn   = document.getElementById('headerMsgBtn');
+      const wrap  = document.getElementById('headerCommentWrap');
+      const inp   = document.getElementById('headerCommentInput');
+      const send  = document.getElementById('headerCommentSend');
+
+      btn.addEventListener('click', () => {
+        wrap.classList.add('open');
+        requestAnimationFrame(() => { setTimeout(() => inp.focus(), 50); });
+      });
+
+      inp.addEventListener('input', () => { send.disabled = inp.value.trim() === ''; });
+
+      function submitHeaderComment() {
+        const msg = inp.value.trim();
+        if (!msg) return;
+        inp.value = '';
+        send.disabled = true;
+        wrap.classList.remove('open');
+        sendNotifications(msg);
+      }
+
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !send.disabled) submitHeaderComment(); });
+      inp.addEventListener('blur',    () => { if (inp.value.trim() === '') wrap.classList.remove('open'); });
+      send.addEventListener('click',  () => { if (!send.disabled) submitHeaderComment(); });
+    })();
 
     document.getElementById('settingsBtn').addEventListener('click', () => {
       overlay.classList.add('open');
