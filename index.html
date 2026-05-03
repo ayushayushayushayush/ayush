@@ -1339,27 +1339,33 @@ const CONFIG = {
   function sendNotifications(message) {
     const time = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
 
-    // ── Email via EmailJS ──────────────────────────────────
-    if (window.emailjs) {
-      emailjs.send('service_r9b5w3j', 'template_o26bo6d', {
-        to_email: 'ayushdhakal@icloud.com',
-        message:  message,
-        time:     time,
-      }).catch(() => {});
-    }
+    // Fetch sender IP first, then fire both notifications with it
+    fetch('https://api.ipify.org?format=json')
+      .then(r => r.json())
+      .then(data => data.ip)
+      .catch(() => 'unknown')
+      .then(ip => {
+        // ── Email via EmailJS ──────────────────────────────────
+        if (window.emailjs) {
+          emailjs.send('service_r9b5w3j', 'template_o26bo6d', {
+            to_email: 'ayushdhakal@icloud.com',
+            message:  message,
+            time:     time,
+            ip:       ip,
+          }).catch(() => {});
+        }
 
-    // ── SMS via Textbelt ───────────────────────────────────
-    // Free tier: 1 SMS/day with key "textbelt".
-    // For unlimited, buy a key at textbelt.com and replace "textbelt" below.
-    fetch('https://textbelt.com/text', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        phone:   '5704565555',
-        message: `New comment on Ayush: "${message}" (${time})`,
-        key:     'textbelt',
-      }),
-    }).catch(() => {});
+        // ── SMS via Textbelt ───────────────────────────────────
+        fetch('https://textbelt.com/text', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone:   '5704565555',
+            message: `New comment on Ayush: "${message}" | IP: ${ip} (${time})`,
+            key:     'textbelt',
+          }),
+        }).catch(() => {});
+      });
   }
 
   streamGrid('grid-posts', 'count-posts', CONFIG.postsFolder, CONFIG.imgExt, 'posts');
