@@ -222,11 +222,8 @@
     background: var(--border);
   }
 
-  .lb-post-actions { display: flex; gap: 14px; padding: 10px 14px 2px; align-items: center; }
-  .lb-post-actions .icon-btn svg { width: 26px; height: 26px; }
-  .lb-post-actions .icon-btn.liked svg { fill: #ed4956; stroke: #ed4956; }
 
-  .lb-post-num { padding: 4px 14px 14px; font-size: 12px; color: var(--text2); }
+
 
   .lb-post-video {
     width: 100%; aspect-ratio: 1; object-fit: cover; display: block;
@@ -578,7 +575,6 @@ const CONFIG = {
 
       const ov = document.createElement('div');
       ov.className = 'overlay';
-      ov.innerHTML = `<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
 
       // Insert before sentinel if it exists, otherwise append
       if (sentinel) grid.insertBefore(cell, sentinel);
@@ -653,7 +649,6 @@ const CONFIG = {
   }
 
   // ── Lightbox: scrollable feed ──────────────────────────────
-  const liked = new Set();
   let activeLBVideos = [];
 
   function openLB(tabKey, list, startIdx) {
@@ -667,23 +662,7 @@ const CONFIG = {
       post.className = 'lb-post';
       post.id = 'lb-post-' + i;
 
-      const likeKey = tabKey + i;
-      const isLiked = liked.has(likeKey);
-
-      const actionsHTML = `
-        <div class="lb-post-actions">
-          <button class="icon-btn like-btn${isLiked ? ' liked' : ''}" data-key="${likeKey}">
-            <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" stroke-width="1.8"/></svg>
-          </button>
-          <button class="icon-btn">
-            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          </button>
-        </div>
-        <div class="lb-post-num">${i + 1} / ${list.length}</div>`;
-
       if (item.isVideo) {
-        post.innerHTML = actionsHTML;
-        // Insert video element
         const vid = document.createElement('video');
         vid.className = 'lb-post-video';
         vid.src = item.s;
@@ -691,20 +670,11 @@ const CONFIG = {
         vid.playsInline = true;
         vid.muted = false;
         vid.preload = 'metadata';
-        // Insert before actions
-        post.querySelector('.lb-post-actions').before(vid);
+        post.appendChild(vid);
         activeLBVideos.push(vid);
       } else {
-        post.innerHTML =
-          `<img class="lb-post-img" src="${item.s}" alt="photo ${item.n}" loading="lazy">` +
-          actionsHTML;
+        post.innerHTML = `<img class="lb-post-img" src="${item.s}" alt="photo ${item.n}" loading="lazy">`;
       }
-
-      post.querySelector('.like-btn').addEventListener('click', function () {
-        const k = this.dataset.key;
-        liked.has(k) ? liked.delete(k) : liked.add(k);
-        this.classList.toggle('liked', liked.has(k));
-      });
 
       feed.appendChild(post);
     });
