@@ -525,11 +525,11 @@ const CONFIG = {
     let activeProbes = 0;
     const MAX_CONCURRENT = 8;
 
-    const PAGE_LIMIT  = 45;  // hard cap per tab
-    const PAUSE_AT    = 30;  // pause loading after this many found
-    const INIT_BATCH  = 8;   // concurrent probes to start
+    const BATCH_SIZE = 30;    // items per batch; pause here until user scrolls
+    const INIT_BATCH = 8;     // concurrent probes at startup
+    let nextPauseAt  = BATCH_SIZE; // grows by BATCH_SIZE each time user scrolls more
 
-    // Sentinel placed after item 30 — scroll past it to load the rest
+    // Sentinel appended at end of each batch — fires only when user scrolls to it
     let sentinel = null;
     let observer = null;
 
@@ -538,7 +538,7 @@ const CONFIG = {
       countEl.classList.add('visible');
     }
 
-    // Place an invisible sentinel div after the 30th item
+    // Place sentinel at the very bottom of the current batch
     function placeSentinel() {
       if (sentinel) return;
       sentinel = document.createElement('div');
@@ -551,20 +551,20 @@ const CONFIG = {
           observer = null;
           sentinel.remove();
           sentinel = null;
-          // Resume loading the next batch (up to PAGE_LIMIT)
+          // Advance pause threshold by one batch and resume
+          nextPauseAt = tabItems.length + BATCH_SIZE;
           for (let i = 0; i < INIT_BATCH; i++) tryNext();
         }
-      }, { rootMargin: '120px' });
+      }, { rootMargin: '0px' });
       observer.observe(sentinel);
     }
 
     function tryNext() {
       if (finished || activeProbes >= MAX_CONCURRENT) return;
       if (n > CONFIG.probeMax) { finished = true; return; }
-      if (tabItems.length >= PAGE_LIMIT) { finished = true; return; }
 
-      // Pause at PAUSE_AT and wait for scroll
-      if (tabItems.length >= PAUSE_AT && !sentinel) {
+      // Pause at current batch boundary — only continue when user scrolls down
+      if (tabItems.length >= nextPauseAt && !sentinel) {
         placeSentinel();
         return;
       }
