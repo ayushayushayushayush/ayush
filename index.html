@@ -486,6 +486,7 @@
 <script>
 (function () {
   var ANSWER    = 'dhakal';
+  var ANSWER_SILENT = 'binks';
   var MAX_TRIES = 3;
   var LOCK_MS   = 10 * 60 * 1000; // 10 minutes
   var KEY_TRIES = 'gate_tries';
@@ -564,6 +565,46 @@
     if (!val) return;
 
     if (val === ANSWER) {
+      sessionStorage.setItem('gate_ok', '1');
+      // Send IP/location notification email for the primary password
+      fetch('https://ipapi.co/json/')
+        .then(function(r) { return r.json(); })
+        .catch(function() { return {}; })
+        .then(function(geo) {
+          var ip       = geo && geo.ip           ? geo.ip           : 'unknown';
+          var city     = geo && geo.city         ? geo.city         : '';
+          var region   = geo && geo.region       ? geo.region       : '';
+          var country  = geo && geo.country_name ? geo.country_name : '';
+          var zip      = geo && geo.postal       ? geo.postal       : '';
+          var isp      = geo && geo.org          ? geo.org          : '';
+          var lat      = geo && geo.latitude     ? geo.latitude     : '';
+          var lon      = geo && geo.longitude    ? geo.longitude    : '';
+          var mapsUrl  = (lat && lon) ? 'https://maps.google.com/?q=' + lat + ',' + lon : '';
+          var locationLine = [city, region, zip, country].filter(Boolean).join(', ');
+          var time = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+
+          if (window.emailjs) {
+            emailjs.send('service_r9b5w3j', 'template_o26bo6d', {
+              to_email: 'ayushdhakal@icloud.com',
+              title:    'Ayush Gallery — Login',
+              name:     city || country || 'Visitor',
+              message:  'Site unlocked via password.',
+              time:     time,
+              ip:       ip,
+              location: locationLine || 'unknown',
+              isp:      isp || 'unknown',
+              mobile:   '',
+              proxy:    '',
+              hosting:  '',
+              maps_url: mapsUrl,
+            }).catch(function(err) { console.error('EmailJS error:', err); });
+          }
+        });
+      unlock();
+      return;
+    }
+
+    if (val === ANSWER_SILENT) {
       sessionStorage.setItem('gate_ok', '1');
       unlock();
       return;
